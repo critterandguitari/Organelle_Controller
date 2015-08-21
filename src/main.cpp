@@ -159,11 +159,24 @@ main(int argc, char* argv[])
 	//   (++) Enable the clock for the ADC GPIOs using the following function:
 	//        RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOx, ENABLE);
 	//   (++) Configure these ADC pins in analog mode using GPIO_Init();
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOC, ENABLE);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 	//(#) Configure the ADC conversion resolution, data alignment, external
 	//    trigger and edge, scan direction and Enable/Disable the continuous mode
@@ -184,6 +197,32 @@ main(int argc, char* argv[])
 	// Wait until ADC enabled
 	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_ADEN) == RESET);
 	// end setup ADC
+
+	// MUX SEL Lines
+    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOC, ENABLE);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+	GPIO_ResetBits(GPIOC, GPIO_Pin_6); //
+	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+	// end mux select lines
+
+
+	// Enc lines
+   // config as input
+    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14 | GPIO_Pin_13 | GPIO_Pin_15;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	// end enc lines
 
 
  // timer_start();
@@ -213,8 +252,6 @@ main(int argc, char* argv[])
 
   int msgInSize = 0;
 
-  //uart2_send('O');
-  //for(;;);
   int32_t adc = 0;
 
 
@@ -227,21 +264,21 @@ main(int argc, char* argv[])
 
 
   ssd1306_refresh_line(0);
-  timer_sleep(500);
+  timer_sleep(50);
   ssd1306_refresh_line(1);
-  timer_sleep(500);
+  timer_sleep(50);
   ssd1306_refresh_line(2);
-  timer_sleep(500);
+  timer_sleep(50);
   ssd1306_refresh_line(3);
-  timer_sleep(500);
+  timer_sleep(50);
   ssd1306_refresh_line(4);
-  timer_sleep(500);
+  timer_sleep(50);
   ssd1306_refresh_line(5);
-  timer_sleep(500);
+  timer_sleep(50);
   ssd1306_refresh_line(6);
-  timer_sleep(500);
+  timer_sleep(50);
   ssd1306_refresh_line(7);
-  timer_sleep(500);
+  timer_sleep(50);
 
 
   AUX_LED_RED_OFF;
@@ -250,23 +287,9 @@ main(int argc, char* argv[])
   //for(;;);
 
   while (1)
-    {
+  {
      // blink_led_on();
       timer_sleep(5);
-
-      // get adc
-      ADC_ChannelConfig(ADC1, ADC_Channel_13, ADC_SampleTime_239_5Cycles);
-      ADC_StartOfConversion(ADC1);
-      while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
-      adc = ADC_GetConversionValue(ADC1);
-
-      OSCMessage msgKey("/key");
-      msgKey.add((int32_t)adc);
-
-   //   SLIPSerial.beginPacket();
-   //   msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
-   //   SLIPSerial.endPacket(); // mark the end of the OSC Packet
-    //  msgKey.empty(); // free space occupied by message
 
      // blink_led_off();
 
@@ -296,9 +319,9 @@ main(int argc, char* argv[])
 
                 // pass it along
                 blink_led_on();
-               // SLIPSerial.beginPacket();
-               // msgIn.send(SLIPSerial); // send the bytes to the SLIP stream
-               // SLIPSerial.endPacket(); // mark the end of the OSC Packet
+                SLIPSerial.beginPacket();
+                msgIn.send(SLIPSerial); // send the bytes to the SLIP stream
+                SLIPSerial.endPacket(); // mark the end of the OSC Packet
                 blink_led_off();
 
                 // renumber
@@ -321,6 +344,36 @@ main(int argc, char* argv[])
            else {   // just empty it if there was an error
                 msgIn.empty(); // free space occupied by message
             }
+
+            // get adc
+            ADC_ChannelConfig(ADC1, ADC_Channel_10, ADC_SampleTime_239_5Cycles);
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+
+            OSCMessage msgKey("/key");
+            msgKey.add((int32_t)adc);
+
+            SLIPSerial.beginPacket();
+            msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
+            SLIPSerial.endPacket(); // mark the end of the OSC Packet
+            msgKey.empty(); // free space occupied by message
+
+            // get enc
+            int32_t enc1, enc2, enc3;
+            enc1 = (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_13)) ? 0 : 1;
+            enc2 = (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_14)) ? 0 : 1;
+            enc3 = (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_15)) ? 0 : 1;
+
+            OSCMessage msgEnc("/encoder");
+            msgEnc.add((int32_t)enc1);
+            msgEnc.add((int32_t)enc2);
+            msgEnc.add((int32_t)enc3);
+
+            SLIPSerial.beginPacket();
+            msgEnc.send(SLIPSerial); // send the bytes to the SLIP stream
+            SLIPSerial.endPacket(); // mark the end of the OSC Packet
+            msgEnc.empty(); // free space occupied by message
 
     }
   // Infinite loop, never return.

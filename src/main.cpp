@@ -15,6 +15,7 @@ extern "C" {
 #include "stm32f0xx.h"
 #include "Timer.h"
 #include "BlinkLed.h"
+#include "ssd1306.h"
 }
 
 #include "OSC/OSCMessage.h"
@@ -144,10 +145,11 @@ int
 main(int argc, char* argv[])
 {
 
-
 	// being ADC setup
 	GPIO_InitTypeDef GPIO_InitStructure;
 	ADC_InitTypeDef  ADC_InitStructure;
+
+	ADC_DeInit(ADC1);
 
 	//(#) Enable the ADC interface clock using
 	//    RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
@@ -169,6 +171,7 @@ main(int argc, char* argv[])
 	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
 	ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
 	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
+	ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T1_TRGO;
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
 	ADC_InitStructure.ADC_ScanDirection = ADC_ScanDirection_Upward;
 	ADC_Init(ADC1, &ADC_InitStructure);
@@ -214,6 +217,38 @@ main(int argc, char* argv[])
   //for(;;);
   int32_t adc = 0;
 
+
+
+  // oled init
+  ssd1306_init(0);
+  put_char_small('I', 0, 0);
+  put_char_small('O', 48, 0);
+ // ssd1306_refresh();
+
+
+  ssd1306_refresh_line(0);
+  timer_sleep(500);
+  ssd1306_refresh_line(1);
+  timer_sleep(500);
+  ssd1306_refresh_line(2);
+  timer_sleep(500);
+  ssd1306_refresh_line(3);
+  timer_sleep(500);
+  ssd1306_refresh_line(4);
+  timer_sleep(500);
+  ssd1306_refresh_line(5);
+  timer_sleep(500);
+  ssd1306_refresh_line(6);
+  timer_sleep(500);
+  ssd1306_refresh_line(7);
+  timer_sleep(500);
+
+
+  AUX_LED_RED_OFF;
+  AUX_LED_GREEN_ON;
+  AUX_LED_BLUE_ON;
+  //for(;;);
+
   while (1)
     {
      // blink_led_on();
@@ -228,10 +263,10 @@ main(int argc, char* argv[])
       OSCMessage msgKey("/key");
       msgKey.add((int32_t)adc);
 
-      SLIPSerial.beginPacket();
-      msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
-      SLIPSerial.endPacket(); // mark the end of the OSC Packet
-      msgKey.empty(); // free space occupied by message
+   //   SLIPSerial.beginPacket();
+   //   msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
+   //   SLIPSerial.endPacket(); // mark the end of the OSC Packet
+    //  msgKey.empty(); // free space occupied by message
 
      // blink_led_off();
 
@@ -261,9 +296,9 @@ main(int argc, char* argv[])
 
                 // pass it along
                 blink_led_on();
-                SLIPSerial.beginPacket();
-                msgIn.send(SLIPSerial); // send the bytes to the SLIP stream
-                SLIPSerial.endPacket(); // mark the end of the OSC Packet
+               // SLIPSerial.beginPacket();
+               // msgIn.send(SLIPSerial); // send the bytes to the SLIP stream
+               // SLIPSerial.endPacket(); // mark the end of the OSC Packet
                 blink_led_off();
 
                 // renumber

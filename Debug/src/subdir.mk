@@ -9,17 +9,23 @@ CPP_SRCS += \
 C_SRCS += \
 ../src/BlinkLed.c \
 ../src/Timer.c \
+../src/spi.c \
+../src/ssd1306.c \
 ../src/uart.c 
 
 OBJS += \
 ./src/BlinkLed.o \
 ./src/Timer.o \
 ./src/main.o \
+./src/spi.o \
+./src/ssd1306.o \
 ./src/uart.o 
 
 C_DEPS += \
 ./src/BlinkLed.d \
 ./src/Timer.d \
+./src/spi.d \
+./src/ssd1306.d \
 ./src/uart.d 
 
 CPP_DEPS += \

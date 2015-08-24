@@ -86,6 +86,32 @@ void renumber(OSCMessage &msg){
   blink_led_on();
 }
 
+
+extern uint8_t pix_buf[];
+
+void oledControl(OSCMessage &msg){
+
+	uint8_t tmp[132];
+	uint8_t i;
+	uint8_t line = 0;
+
+	if (msg.isInt(0)){
+		line = msg.getInt(0) & 0x7;
+	}
+	if (msg.isBlob(1)) {
+	  msg.getBlob(1, tmp, 132);
+	//  SLIPSerial.beginPacket();
+	//  msg.send(SLIPSerial);
+	//  SLIPSerial.endPacket();
+	}
+
+	// shift array 4 spaces cause first 4 bytes are the length of blob
+	for (i = 0; i<128; i++)
+	  pix_buf[i + (line * 128)] = tmp[i + 4];
+
+	ssd1306_refresh_line(line);
+}
+
 void ledControl(OSCMessage &msg) {
 
 	  blink_led_on();
@@ -143,7 +169,7 @@ void ledControl(OSCMessage &msg) {
 
 int
 main(int argc, char* argv[])
-{
+ {
 
 	// being ADC setup
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -260,9 +286,9 @@ main(int argc, char* argv[])
   ssd1306_init(0);
   put_char_small('I', 0, 0);
   put_char_small('O', 48, 0);
- // ssd1306_refresh();
+  ssd1306_refresh();
 
-
+/*
   ssd1306_refresh_line(0);
   timer_sleep(50);
   ssd1306_refresh_line(1);
@@ -278,7 +304,7 @@ main(int argc, char* argv[])
   ssd1306_refresh_line(6);
   timer_sleep(50);
   ssd1306_refresh_line(7);
-  timer_sleep(50);
+  timer_sleep(50);*/
 
 
   AUX_LED_RED_OFF;
@@ -289,7 +315,7 @@ main(int argc, char* argv[])
   while (1)
   {
      // blink_led_on();
-      timer_sleep(5);
+    //  timer_sleep(5);
 
      // blink_led_off();
 
@@ -318,20 +344,22 @@ main(int argc, char* argv[])
             if(!msgIn.hasError()) {
 
                 // pass it along
-                blink_led_on();
-                SLIPSerial.beginPacket();
-                msgIn.send(SLIPSerial); // send the bytes to the SLIP stream
-                SLIPSerial.endPacket(); // mark the end of the OSC Packet
-                blink_led_off();
+               // blink_led_on();
+               // SLIPSerial.beginPacket();
+               // msgIn.send(SLIPSerial); // send the bytes to the SLIP stream
+               // SLIPSerial.endPacket(); // mark the end of the OSC Packet
+               // blink_led_off();
 
                 // renumber
-                msgIn.dispatch("/sys/renumber", renumber, 0);
+              //  msgIn.dispatch("/sys/renumber", renumber, 0);
 
                 // reset
-                msgIn.dispatch("/sys/reset", reset, 0);
+               // msgIn.dispatch("/sys/reset", reset, 0);
 
                 // led
-                msgIn.dispatch("/led", ledControl, 0);
+               // msgIn.dispatch("/led", ledControl, 0);
+
+                msgIn.dispatch("/oled", oledControl, 0);
 
                 // type count
                // address = "/" + type;
@@ -346,7 +374,7 @@ main(int argc, char* argv[])
             }
 
             // get adc
-            ADC_ChannelConfig(ADC1, ADC_Channel_10, ADC_SampleTime_239_5Cycles);
+        /*    ADC_ChannelConfig(ADC1, ADC_Channel_10, ADC_SampleTime_239_5Cycles);
             ADC_StartOfConversion(ADC1);
             while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
             adc = ADC_GetConversionValue(ADC1);
@@ -365,7 +393,7 @@ main(int argc, char* argv[])
             enc2 = (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_14)) ? 0 : 1;
             enc3 = (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_15)) ? 0 : 1;
 
-            OSCMessage msgEnc("/encoder");
+            OSCMessage msgEnc("/enc");
             msgEnc.add((int32_t)enc1);
             msgEnc.add((int32_t)enc2);
             msgEnc.add((int32_t)enc3);
@@ -373,7 +401,7 @@ main(int argc, char* argv[])
             SLIPSerial.beginPacket();
             msgEnc.send(SLIPSerial); // send the bytes to the SLIP stream
             SLIPSerial.endPacket(); // mark the end of the OSC Packet
-            msgEnc.empty(); // free space occupied by message
+            msgEnc.empty(); // free space occupied by message*/
 
     }
   // Infinite loop, never return.

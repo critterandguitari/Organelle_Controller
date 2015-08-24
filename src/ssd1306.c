@@ -121,7 +121,7 @@ void ssd1306_init(uint8_t vccstate)
 
 	uint16_t i;
 	for (i = 0; i < 1024; i++)
-		pix_buf[i] = 0xaa;
+		pix_buf[i] = 0;
 
  // CMD(0xAA);
  // for(;;);

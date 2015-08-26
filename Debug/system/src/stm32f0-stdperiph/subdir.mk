@@ -5,6 +5,7 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../system/src/stm32f0-stdperiph/stm32f0xx_adc.c \
+../system/src/stm32f0-stdperiph/stm32f0xx_dma.c \
 ../system/src/stm32f0-stdperiph/stm32f0xx_gpio.c \
 ../system/src/stm32f0-stdperiph/stm32f0xx_misc.c \
 ../system/src/stm32f0-stdperiph/stm32f0xx_rcc.c \
@@ -13,6 +14,7 @@ C_SRCS += \
 
 OBJS += \
 ./system/src/stm32f0-stdperiph/stm32f0xx_adc.o \
+./system/src/stm32f0-stdperiph/stm32f0xx_dma.o \
 ./system/src/stm32f0-stdperiph/stm32f0xx_gpio.o \
 ./system/src/stm32f0-stdperiph/stm32f0xx_misc.o \
 ./system/src/stm32f0-stdperiph/stm32f0xx_rcc.o \
@@ -21,6 +23,7 @@ OBJS += \
 
 C_DEPS += \
 ./system/src/stm32f0-stdperiph/stm32f0xx_adc.d \
+./system/src/stm32f0-stdperiph/stm32f0xx_dma.d \
 ./system/src/stm32f0-stdperiph/stm32f0xx_gpio.d \
 ./system/src/stm32f0-stdperiph/stm32f0xx_misc.d \
 ./system/src/stm32f0-stdperiph/stm32f0xx_rcc.d \

@@ -69,6 +69,10 @@ extern "C" {
 #pragma GCC diagnostic ignored "-Wmissing-declarations"
 #pragma GCC diagnostic ignored "-Wreturn-type"
 
+// ADC DMA stuff
+#define ADC1_DR_Address    0x40012440
+__IO uint16_t RegularConvData_Tab[4];
+
 SLIPEncodedSerial SLIPSerial;
 
 // reset to default turn on state
@@ -167,13 +171,109 @@ void ledControl(OSCMessage &msg) {
 
 }
 
+
+//// ADC DMA stuff
+/**
+  * @brief  ADC1 channel configuration
+  * @param  None
+  * @retval None
+  */
+static void ADC_Config(void)
+{
+  ADC_InitTypeDef     ADC_InitStructure;
+  GPIO_InitTypeDef    GPIO_InitStructure;
+  /* ADC1 DeInit */
+  ADC_DeInit(ADC1);
+
+  /* GPIOC Periph clock enable */
+  RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOC, ENABLE);
+
+   /* ADC1 Periph clock enable */
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+
+  /* Configure ADC Channel10, 11, 12, 13 as analog input */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+  GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  /* Initialize ADC structure */
+  ADC_StructInit(&ADC_InitStructure);
+
+  /* Configure the ADC1 in continuous mode withe a resolution equal to 12 bits  */
+  ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
+  ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
+  ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
+  ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
+  ADC_InitStructure.ADC_ScanDirection = ADC_ScanDirection_Backward;
+  ADC_Init(ADC1, &ADC_InitStructure);
+
+  /* Convert the ADC1 Channel11 and channel10 with 55.5 Cycles as sampling time */
+  ADC_ChannelConfig(ADC1, ADC_Channel_10 , ADC_SampleTime_55_5Cycles);
+  ADC_ChannelConfig(ADC1, ADC_Channel_11 , ADC_SampleTime_55_5Cycles);
+  ADC_ChannelConfig(ADC1, ADC_Channel_12 , ADC_SampleTime_55_5Cycles);
+  ADC_ChannelConfig(ADC1, ADC_Channel_13 , ADC_SampleTime_55_5Cycles);
+
+  /* ADC Calibration */
+  ADC_GetCalibrationFactor(ADC1);
+
+  /* ADC DMA request in circular mode */
+  ADC_DMARequestModeConfig(ADC1, ADC_DMAMode_Circular);
+
+  /* Enable ADC_DMA */
+  ADC_DMACmd(ADC1, ENABLE);
+
+  /* Enable the ADC peripheral */
+  ADC_Cmd(ADC1, ENABLE);
+
+  /* Wait the ADRDY flag */
+  while(!ADC_GetFlagStatus(ADC1, ADC_FLAG_ADRDY));
+
+  /* ADC1 regular Software Start Conv */
+  ADC_StartOfConversion(ADC1);
+}
+
+/**
+  * @brief  DMA channel1 configuration
+  * @param  None
+  * @retval None
+  */
+static void DMA_Config(void)
+{
+  DMA_InitTypeDef   DMA_InitStructure;
+  /* DMA1 clock enable */
+  RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1 , ENABLE);
+
+  /* DMA1 Channel1 Config */
+  DMA_DeInit(DMA1_Channel1);
+  DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)ADC1_DR_Address;
+  DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)RegularConvData_Tab;
+  DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+  DMA_InitStructure.DMA_BufferSize = 4;
+  DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+  DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+  DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
+  DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+  DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
+  DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+  DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
+  DMA_Init(DMA1_Channel1, &DMA_InitStructure);
+  /* DMA1 Channel1 enable */
+  DMA_Cmd(DMA1_Channel1, ENABLE);
+
+}
+
+//// end ADC DMA
+
+
+
 int
 main(int argc, char* argv[])
  {
 
 	// being ADC setup
 	GPIO_InitTypeDef GPIO_InitStructure;
-	ADC_InitTypeDef  ADC_InitStructure;
+	/*ADC_InitTypeDef  ADC_InitStructure;
 
 	ADC_DeInit(ADC1);
 
@@ -222,7 +322,19 @@ main(int argc, char* argv[])
 
 	// Wait until ADC enabled
 	while(ADC_GetFlagStatus(ADC1, ADC_FLAG_ADEN) == RESET);
+
+	// setup channels
+    ADC_ChannelConfig(ADC1, ADC_Channel_10, ADC_SampleTime_239_5Cycles);
+    ADC_ChannelConfig(ADC1, ADC_Channel_11, ADC_SampleTime_239_5Cycles);
+    ADC_ChannelConfig(ADC1, ADC_Channel_12, ADC_SampleTime_239_5Cycles);
 	// end setup ADC
+	 */
+
+    /* ADC1 configuration */
+    ADC_Config();
+
+    /* DMA configuration */
+    DMA_Config();
 
 	// MUX SEL Lines
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOC, ENABLE);
@@ -306,11 +418,19 @@ main(int argc, char* argv[])
   ssd1306_refresh_line(7);
   timer_sleep(50);*/
 
+/*  for(;;){
+		 timer_sleep(500);
 
   AUX_LED_RED_OFF;
   AUX_LED_GREEN_ON;
   AUX_LED_BLUE_ON;
-  //for(;;);
+	 timer_sleep(500);
+  AUX_LED_RED_ON;
+  AUX_LED_GREEN_OFF;
+  AUX_LED_BLUE_OFF;
+  }*/
+
+
 
   while (1)
   {
@@ -357,7 +477,7 @@ main(int argc, char* argv[])
                // msgIn.dispatch("/sys/reset", reset, 0);
 
                 // led
-               // msgIn.dispatch("/led", ledControl, 0);
+                msgIn.dispatch("/led", ledControl, 0);
 
                 msgIn.dispatch("/oled", oledControl, 0);
 
@@ -374,19 +494,356 @@ main(int argc, char* argv[])
             }
 
             // get adc
-        /*    ADC_ChannelConfig(ADC1, ADC_Channel_10, ADC_SampleTime_239_5Cycles);
+
+            OSCMessage msgKey("/key");
+
+            /* Test DMA1 TC flag */
+            while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
+            /* Clear DMA TC flag */
+            DMA_ClearFlag(DMA1_FLAG_TC1);
+
+            msgKey.add((int32_t)RegularConvData_Tab[0]);
+            msgKey.add((int32_t)RegularConvData_Tab[1]);
+            msgKey.add((int32_t)RegularConvData_Tab[2]);
+            msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+            // first mux
+            /*	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
             ADC_StartOfConversion(ADC1);
             while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
             adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOSEQ) == RESET){;}
 
-            OSCMessage msgKey("/key");
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOSEQ) == RESET){;}
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOSEQ) == RESET){;}
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOSEQ) == RESET){;}
+
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOSEQ) == RESET){;}
+
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOSEQ) == RESET){;}
+
+           // msgKey.add((int32_t)adc);
+           // msgKey.add((int32_t)adc);
+           // msgKey.add((int32_t)adc);
+
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+           // ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOSEQ) == RESET){;}
+
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+        	timer_sleep(10);
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOSEQ) == RESET){;}
+
+
+
+*/
+
+/*
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
             msgKey.add((int32_t)adc);
 
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+*/
+
+            // second mux
+            /*    timer_sleep(100);
+            ADC_ChannelConfig(ADC1, ADC_Channel_11, ADC_SampleTime_239_5Cycles);
+            timer_sleep(100);
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+            // third mux
+           // ADC_ChannelConfig(ADC1, ADC_Channel_12, ADC_SampleTime_239_5Cycles);
+          /*  timer_sleep(1);
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+        	GPIO_SetBits(GPIOC, GPIO_Pin_6); // mux sel
+        	GPIO_SetBits(GPIOC, GPIO_Pin_7); //
+        	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
+            ADC_StartOfConversion(ADC1);
+            while(ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET){;}
+            adc = ADC_GetConversionValue(ADC1);
+            msgKey.add((int32_t)adc);
+
+*/
             SLIPSerial.beginPacket();
             msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
             SLIPSerial.endPacket(); // mark the end of the OSC Packet
             msgKey.empty(); // free space occupied by message
 
+
+            /*
             // get enc
             int32_t enc1, enc2, enc3;
             enc1 = (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_13)) ? 0 : 1;

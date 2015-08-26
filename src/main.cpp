@@ -73,6 +73,23 @@ extern "C" {
 #define ADC1_DR_Address    0x40012440
 __IO uint16_t RegularConvData_Tab[4];
 
+// key mux
+#define MUX_SEL_A_1 GPIO_SetBits(GPIOC, GPIO_Pin_6)
+#define MUX_SEL_A_0 GPIO_ResetBits(GPIOC, GPIO_Pin_6)
+#define MUX_SEL_B_1 GPIO_SetBits(GPIOC, GPIO_Pin_7)
+#define MUX_SEL_B_0 GPIO_ResetBits(GPIOC, GPIO_Pin_7)
+#define MUX_SEL_C_1 GPIO_SetBits(GPIOC, GPIO_Pin_8)
+#define MUX_SEL_C_0 GPIO_ResetBits(GPIOC, GPIO_Pin_8)
+
+#define MUX_0 MUX_SEL_A_0;MUX_SEL_B_0;MUX_SEL_C_0;
+#define MUX_1 MUX_SEL_A_1;MUX_SEL_B_0;MUX_SEL_C_0;
+#define MUX_2 MUX_SEL_A_0;MUX_SEL_B_1;MUX_SEL_C_0;
+#define MUX_3 MUX_SEL_A_1;MUX_SEL_B_1;MUX_SEL_C_0;
+#define MUX_4 MUX_SEL_A_0;MUX_SEL_B_0;MUX_SEL_C_1;
+#define MUX_5 MUX_SEL_A_1;MUX_SEL_B_0;MUX_SEL_C_1;
+#define MUX_6 MUX_SEL_A_0;MUX_SEL_B_1;MUX_SEL_C_1;
+#define MUX_7 MUX_SEL_A_1;MUX_SEL_B_1;MUX_SEL_C_1;
+
 SLIPEncodedSerial SLIPSerial;
 
 // reset to default turn on state
@@ -201,7 +218,7 @@ static void ADC_Config(void)
   ADC_StructInit(&ADC_InitStructure);
 
   /* Configure the ADC1 in continuous mode withe a resolution equal to 12 bits  */
-  ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
+  ADC_InitStructure.ADC_Resolution = ADC_Resolution_10b;
   ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
   ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
   ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
@@ -265,6 +282,106 @@ static void DMA_Config(void)
 
 //// end ADC DMA
 
+
+/// ad hoc scan keys
+
+void getKeys(){
+    OSCMessage msgKey("/key");
+
+    stopwatchStart();
+
+
+     MUX_0;
+     // wait a little
+     timer_sleep(2);
+     // wait twice in case multiplexer switched during conversion
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
+     DMA_ClearFlag(DMA1_FLAG_TC1);
+
+     msgKey.add((int32_t)RegularConvData_Tab[0]);  // only for the first one
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     MUX_1;
+     timer_sleep(2);
+     // wait twice in case multiplexer switched during conversion
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
+     DMA_ClearFlag(DMA1_FLAG_TC1);
+
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     MUX_2;
+     timer_sleep(2);
+     // wait twice in case multiplexer switched during conversion
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
+     DMA_ClearFlag(DMA1_FLAG_TC1);
+
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     MUX_3;
+     timer_sleep(2);
+     // wait twice in case multiplexer switched during conversion
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
+     DMA_ClearFlag(DMA1_FLAG_TC1);
+
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     MUX_4;
+     timer_sleep(2);
+     // wait twice in case multiplexer switched during conversion
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
+     DMA_ClearFlag(DMA1_FLAG_TC1);
+
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     MUX_5;
+     timer_sleep(2);
+     // wait twice in case multiplexer switched during conversion
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
+     DMA_ClearFlag(DMA1_FLAG_TC1);
+
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     MUX_6;
+     timer_sleep(2);
+     // wait twice in case multiplexer switched during conversion
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
+     DMA_ClearFlag(DMA1_FLAG_TC1);
+
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     MUX_7;
+     timer_sleep(2);
+     // wait twice in case multiplexer switched during conversion
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
+     DMA_ClearFlag(DMA1_FLAG_TC1);
+
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     msgKey.add((int32_t)stopwatchReport());
+
+	 SLIPSerial.beginPacket();
+	 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
+	 SLIPSerial.endPacket(); // mark the end of the OSC Packet
+	 msgKey.empty(); // free space occupied by message
+
+
+}
 
 
 int
@@ -431,7 +548,6 @@ main(int argc, char* argv[])
   }*/
 
 
-
   while (1)
   {
      // blink_led_on();
@@ -494,18 +610,9 @@ main(int argc, char* argv[])
             }
 
             // get adc
+            getKeys();
 
-            OSCMessage msgKey("/key");
 
-            /* Test DMA1 TC flag */
-            while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
-            /* Clear DMA TC flag */
-            DMA_ClearFlag(DMA1_FLAG_TC1);
-
-            msgKey.add((int32_t)RegularConvData_Tab[0]);
-            msgKey.add((int32_t)RegularConvData_Tab[1]);
-            msgKey.add((int32_t)RegularConvData_Tab[2]);
-            msgKey.add((int32_t)RegularConvData_Tab[3]);
 
             // first mux
             /*	GPIO_ResetBits(GPIOC, GPIO_Pin_6); // mux sel
@@ -837,11 +944,6 @@ main(int argc, char* argv[])
             msgKey.add((int32_t)adc);
 
 */
-            SLIPSerial.beginPacket();
-            msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
-            SLIPSerial.endPacket(); // mark the end of the OSC Packet
-            msgKey.empty(); // free space occupied by message
-
 
             /*
             // get enc

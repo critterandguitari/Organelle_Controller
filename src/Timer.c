@@ -16,6 +16,7 @@ timer_tick (void);
 // ----------------------------------------------------------------------------
 
 volatile uint32_t timer_delayCount;
+volatile uint32_t stopwatch;
 
 // ----------------------------------------------------------------------------
 
@@ -24,6 +25,15 @@ timer_start (void)
 {
   // Use SysTick as reference for the delay loops.
   SysTick_Config (SystemCoreClock / TIMER_FREQUENCY_HZ);
+}
+
+void stopwatchStart(void) {
+	stopwatch = 0;
+
+}
+
+uint32_t stopwatchReport(void){
+	return stopwatch;
 }
 
 void
@@ -44,6 +54,9 @@ timer_tick (void)
     {
       --timer_delayCount;
     }
+
+  // increment stopwatch
+  stopwatch++;
 }
 
 // ----- SysTick_Handler() ----------------------------------------------------

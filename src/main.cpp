@@ -230,6 +230,13 @@ static void ADC_Config(void)
   ADC_ChannelConfig(ADC1, ADC_Channel_11 , ADC_SampleTime_55_5Cycles);
   ADC_ChannelConfig(ADC1, ADC_Channel_12 , ADC_SampleTime_55_5Cycles);
   ADC_ChannelConfig(ADC1, ADC_Channel_13 , ADC_SampleTime_55_5Cycles);
+/*
+  ADC_ChannelConfig(ADC1, ADC_Channel_10 , ADC_SampleTime_13_5Cycles);
+  ADC_ChannelConfig(ADC1, ADC_Channel_11 , ADC_SampleTime_13_5Cycles);
+  ADC_ChannelConfig(ADC1, ADC_Channel_12 , ADC_SampleTime_13_5Cycles);
+  ADC_ChannelConfig(ADC1, ADC_Channel_13 , ADC_SampleTime_13_5Cycles);*/
+
+
 
   /* ADC Calibration */
   ADC_GetCalibrationFactor(ADC1);
@@ -291,30 +298,75 @@ void getKeys(){
     stopwatchStart();
 
 
-     MUX_0;
-     // wait a little
-     timer_sleep(2);
-     // wait twice in case multiplexer switched during conversion
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
-     DMA_ClearFlag(DMA1_FLAG_TC1);
 
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     MUX_0;
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
      msgKey.add((int32_t)RegularConvData_Tab[0]);  // only for the first one
      msgKey.add((int32_t)RegularConvData_Tab[1]);
      msgKey.add((int32_t)RegularConvData_Tab[2]);
      msgKey.add((int32_t)RegularConvData_Tab[3]);
 
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
      MUX_1;
-     timer_sleep(2);
-     // wait twice in case multiplexer switched during conversion
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
-     DMA_ClearFlag(DMA1_FLAG_TC1);
-
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
      msgKey.add((int32_t)RegularConvData_Tab[1]);
      msgKey.add((int32_t)RegularConvData_Tab[2]);
      msgKey.add((int32_t)RegularConvData_Tab[3]);
 
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
      MUX_2;
-     timer_sleep(2);
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     MUX_3;
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     MUX_4;
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     MUX_5;
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     MUX_6;
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     MUX_7;
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
+     msgKey.add((int32_t)RegularConvData_Tab[1]);
+     msgKey.add((int32_t)RegularConvData_Tab[2]);
+     msgKey.add((int32_t)RegularConvData_Tab[3]);
+
+     /*
+     MUX_2;
+     timer_sleep(1);
      // wait twice in case multiplexer switched during conversion
      while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
      DMA_ClearFlag(DMA1_FLAG_TC1);
@@ -324,7 +376,7 @@ void getKeys(){
      msgKey.add((int32_t)RegularConvData_Tab[3]);
 
      MUX_3;
-     timer_sleep(2);
+     timer_sleep(1);
      // wait twice in case multiplexer switched during conversion
      while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
      DMA_ClearFlag(DMA1_FLAG_TC1);
@@ -334,7 +386,7 @@ void getKeys(){
      msgKey.add((int32_t)RegularConvData_Tab[3]);
 
      MUX_4;
-     timer_sleep(2);
+     timer_sleep(1);
      // wait twice in case multiplexer switched during conversion
      while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
      DMA_ClearFlag(DMA1_FLAG_TC1);
@@ -344,7 +396,7 @@ void getKeys(){
      msgKey.add((int32_t)RegularConvData_Tab[3]);
 
      MUX_5;
-     timer_sleep(2);
+     timer_sleep(1);
      // wait twice in case multiplexer switched during conversion
      while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
      DMA_ClearFlag(DMA1_FLAG_TC1);
@@ -354,7 +406,7 @@ void getKeys(){
      msgKey.add((int32_t)RegularConvData_Tab[3]);
 
      MUX_6;
-     timer_sleep(2);
+     timer_sleep(1);
      // wait twice in case multiplexer switched during conversion
      while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
      DMA_ClearFlag(DMA1_FLAG_TC1);
@@ -364,7 +416,7 @@ void getKeys(){
      msgKey.add((int32_t)RegularConvData_Tab[3]);
 
      MUX_7;
-     timer_sleep(2);
+     timer_sleep(1);
      // wait twice in case multiplexer switched during conversion
      while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );
      DMA_ClearFlag(DMA1_FLAG_TC1);
@@ -372,8 +424,9 @@ void getKeys(){
      msgKey.add((int32_t)RegularConvData_Tab[1]);
      msgKey.add((int32_t)RegularConvData_Tab[2]);
      msgKey.add((int32_t)RegularConvData_Tab[3]);
-
+*/
      msgKey.add((int32_t)stopwatchReport());
+
 
 	 SLIPSerial.beginPacket();
 	 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream

@@ -71,8 +71,11 @@ extern "C" {
 
 // ADC DMA stuff
 #define ADC1_DR_Address    0x40012440
-__IO uint16_t RegularConvData_Tab[4];
-uint32_t keyValues[25];
+__IO uint16_t RegularConvData_Tab[9];
+uint16_t keyValuesRaw[25];
+uint16_t keyValues[25];
+uint16_t keyValuesLast[25];
+uint32_t knobValues[5];
 
 // key mux
 #define MUX_SEL_A_1 GPIO_SetBits(GPIOC, GPIO_Pin_6)
@@ -204,16 +207,30 @@ static void ADC_Config(void)
   ADC_DeInit(ADC1);
 
   /* GPIOC Periph clock enable */
+  RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+  RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
   RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOC, ENABLE);
 
    /* ADC1 Periph clock enable */
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
 
-  /* Configure ADC Channel10, 11, 12, 13 as analog input */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3;
+  /* Configure  as analog input */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
+
+  /* Configure as analog input */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
+
+  /* Configure as analog input */
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
 
   /* Initialize ADC structure */
   ADC_StructInit(&ADC_InitStructure);
@@ -231,12 +248,12 @@ static void ADC_Config(void)
   ADC_ChannelConfig(ADC1, ADC_Channel_11 , ADC_SampleTime_55_5Cycles);
   ADC_ChannelConfig(ADC1, ADC_Channel_12 , ADC_SampleTime_55_5Cycles);
   ADC_ChannelConfig(ADC1, ADC_Channel_13 , ADC_SampleTime_55_5Cycles);
-/*
-  ADC_ChannelConfig(ADC1, ADC_Channel_10 , ADC_SampleTime_13_5Cycles);
-  ADC_ChannelConfig(ADC1, ADC_Channel_11 , ADC_SampleTime_13_5Cycles);
-  ADC_ChannelConfig(ADC1, ADC_Channel_12 , ADC_SampleTime_13_5Cycles);
-  ADC_ChannelConfig(ADC1, ADC_Channel_13 , ADC_SampleTime_13_5Cycles);*/
 
+  ADC_ChannelConfig(ADC1, ADC_Channel_14 , ADC_SampleTime_55_5Cycles );
+  ADC_ChannelConfig(ADC1, ADC_Channel_15 , ADC_SampleTime_55_5Cycles );
+  ADC_ChannelConfig(ADC1, ADC_Channel_4 , ADC_SampleTime_55_5Cycles );
+  ADC_ChannelConfig(ADC1, ADC_Channel_8 , ADC_SampleTime_55_5Cycles );
+  ADC_ChannelConfig(ADC1, ADC_Channel_9 , ADC_SampleTime_55_5Cycles );
 
 
   /* ADC Calibration */
@@ -274,7 +291,7 @@ static void DMA_Config(void)
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)ADC1_DR_Address;
 	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)RegularConvData_Tab;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-	DMA_InitStructure.DMA_BufferSize = 4;
+	DMA_InitStructure.DMA_BufferSize = 9;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
@@ -334,6 +351,8 @@ void keyMuxSel(uint32_t sel){
 	else {MUX_0;}
 }
 
+
+// this could / should be DMA interrupt
 uint32_t scanKeys(){
 	static uint32_t seqCount = 0;
 	static uint32_t muxSelCount = 0;
@@ -349,117 +368,118 @@ uint32_t scanKeys(){
 		if (seqCount == 1){
 			// do nothing, wait for next conversion sequence since the muxes were just changed
 		}
-		if (seqCount == 3){
-			keyValues[0] = RegularConvData_Tab[0]; // the aux key, cause we scan in reverse for some reason
-			keyValues[1 + muxSelCount] = RegularConvData_Tab[1];
-			keyValues[9 + muxSelCount] = RegularConvData_Tab[2];
-			keyValues[17 + muxSelCount] = RegularConvData_Tab[3];
+		if (seqCount == 2){
+			keyValuesRaw[0] = RegularConvData_Tab[2]; // the aux key, cause we scan in reverse for some reason
+			keyValuesRaw[1 + muxSelCount] = RegularConvData_Tab[3];
+			keyValuesRaw[9 + muxSelCount] = RegularConvData_Tab[4];
+			keyValuesRaw[17 + muxSelCount] = RegularConvData_Tab[5];
+
+			knobValues[4] = RegularConvData_Tab[0];
+			knobValues[0] = RegularConvData_Tab[1];
+			knobValues[1] = RegularConvData_Tab[6];
+			knobValues[3] = RegularConvData_Tab[7];
+			knobValues[2] = RegularConvData_Tab[8];
 		}
 		seqCount++;
-		seqCount %= 4;
+		seqCount %= 3;
 	}
 	return muxSelCount;
 }
 
-void getKeys(OSCMessage &msg){
+void getKnobs(OSCMessage &msg){
 
+	OSCMessage msgKnobs("/knobs");
+
+	stopwatchStart();
+
+	uint32_t i;
+	for (i = 0; i < 5; i++){
+		msgKnobs.add((int32_t)knobValues[i]);
+	}
+
+	SLIPSerial.beginPacket();
+	msgKnobs.send(SLIPSerial); // send the bytes to the SLIP stream
+	SLIPSerial.endPacket(); // mark the end of the OSC Packet
+	msgKnobs.empty(); // free space occupied by message
+
+}
+
+void remapKeys(void){
+	keyValues[0] = keyValuesRaw[0];
+
+	keyValues[1] = keyValuesRaw[23];
+	keyValues[2] = keyValuesRaw[21];
+	keyValues[3] = keyValuesRaw[17];
+	keyValues[4] = keyValuesRaw[18];
+	keyValues[5] = keyValuesRaw[24];
+	keyValues[6] = keyValuesRaw[22];
+	keyValues[7] = keyValuesRaw[19];
+	keyValues[8] = keyValuesRaw[20];
+
+	keyValues[9] = keyValuesRaw[13];
+	keyValues[10] = keyValuesRaw[15];
+	keyValues[11] = keyValuesRaw[10];
+	keyValues[12] = keyValuesRaw[9];
+	keyValues[13] = keyValuesRaw[16];
+	keyValues[14] = keyValuesRaw[11];
+	keyValues[15] = keyValuesRaw[14];
+	keyValues[16] = keyValuesRaw[12];
+
+	keyValues[17] = keyValuesRaw[5];
+	keyValues[18] = keyValuesRaw[7];
+	keyValues[19] = keyValuesRaw[2];
+	keyValues[20] = keyValuesRaw[1];
+	keyValues[21] = keyValuesRaw[4];
+	keyValues[22] = keyValuesRaw[8];
+	keyValues[23] = keyValuesRaw[3];
+	keyValues[24] = keyValuesRaw[6];
+}
+
+void sendKeyEvent(uint32_t note, uint32_t vel){
 
 	OSCMessage msgKey("/key");
 
-    stopwatchStart();
-
-    uint32_t i;
-   for (i = 0; i < 25; i++){
-    	msgKey.add((int32_t)keyValues[i]);
-    }
-
-  /*  for (i = 0; i < 8; i++){
-		while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-		keyMuxSel(i);
-		while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-		while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-		//msgKey.add((int32_t)RegularConvData_Tab[0]);  // only for the first one
-		msgKey.add((int32_t)RegularConvData_Tab[1]);
-		msgKey.add((int32_t)RegularConvData_Tab[2]);
-		msgKey.add((int32_t)RegularConvData_Tab[3]);
-    }*/
-
-/*
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     MUX_0;
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     msgKey.add((int32_t)RegularConvData_Tab[0]);  // only for the first one
-     msgKey.add((int32_t)RegularConvData_Tab[1]);
-     msgKey.add((int32_t)RegularConvData_Tab[2]);
-     msgKey.add((int32_t)RegularConvData_Tab[3]);
-
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     MUX_1;
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     msgKey.add((int32_t)RegularConvData_Tab[1]);
-     msgKey.add((int32_t)RegularConvData_Tab[2]);
-     msgKey.add((int32_t)RegularConvData_Tab[3]);
-
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     MUX_2;
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     msgKey.add((int32_t)RegularConvData_Tab[1]);
-     msgKey.add((int32_t)RegularConvData_Tab[2]);
-     msgKey.add((int32_t)RegularConvData_Tab[3]);
-
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     MUX_3;
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     msgKey.add((int32_t)RegularConvData_Tab[1]);
-     msgKey.add((int32_t)RegularConvData_Tab[2]);
-     msgKey.add((int32_t)RegularConvData_Tab[3]);
-
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     MUX_4;
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     msgKey.add((int32_t)RegularConvData_Tab[1]);
-     msgKey.add((int32_t)RegularConvData_Tab[2]);
-     msgKey.add((int32_t)RegularConvData_Tab[3]);
-
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     MUX_5;
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     msgKey.add((int32_t)RegularConvData_Tab[1]);
-     msgKey.add((int32_t)RegularConvData_Tab[2]);
-     msgKey.add((int32_t)RegularConvData_Tab[3]);
-
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     MUX_6;
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     msgKey.add((int32_t)RegularConvData_Tab[1]);
-     msgKey.add((int32_t)RegularConvData_Tab[2]);
-     msgKey.add((int32_t)RegularConvData_Tab[3]);
-
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     MUX_7;
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     while((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == RESET );  DMA_ClearFlag(DMA1_FLAG_TC1);
-     msgKey.add((int32_t)RegularConvData_Tab[1]);
-     msgKey.add((int32_t)RegularConvData_Tab[2]);
-     msgKey.add((int32_t)RegularConvData_Tab[3]);
-*/
-
-     msgKey.add((int32_t)stopwatchReport());
-
+    msgKey.add((int32_t)note);
+    msgKey.add((int32_t)vel);
 
 	 SLIPSerial.beginPacket();
 	 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
 	 SLIPSerial.endPacket(); // mark the end of the OSC Packet
 	 msgKey.empty(); // free space occupied by message
+}
+
+void checkKeyEvent(void){
+	uint32_t i;
+
+	for (i=0; i<25; i++){
+		if ((keyValues[i] > 10) && (keyValuesLast[i] < 10))
+			sendKeyEvent(i, keyValues[i]);
+		if ((keyValuesLast[i] > 10) && (keyValues[i] < 10))
+			sendKeyEvent(i, 0);
+		keyValuesLast[i] = keyValues[i];
+	}
+
+}
+
+void getKeys(/*OSCMessage &msg*/){
 
 
+
+	remapKeys();
+	checkKeyEvent();
+
+	/*
+	OSCMessage msgKey("/key");
+    uint32_t i;
+   for (i = 0; i < 25; i++){
+    	msgKey.add((int32_t)keyValues[i]);
+    }
+
+	 SLIPSerial.beginPacket();
+	 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
+	 SLIPSerial.endPacket(); // mark the end of the OSC Packet
+	 msgKey.empty(); // free space occupied by message
+	 */
 }
 
 
@@ -542,9 +562,11 @@ int main(int argc, char* argv[]) {
 				}
 			  }
 			  muxNum = scanKeys();   // scan keys while we are waiting
+
 			  if (muxNum != muxNumLast){
 				  if (muxNum == 0){
 					  numTimesScanned++;
+					  getKeys(); // and send em out if we got em
 				  }
 			  }
 			  muxNumLast = muxNum;
@@ -570,7 +592,9 @@ int main(int argc, char* argv[]) {
 
 				msgIn.dispatch("/oled", oledControl, 0);
 
-				msgIn.dispatch("/getkeys", getKeys, 0);
+				//msgIn.dispatch("/getkeys", getKeys, 0);
+
+				msgIn.dispatch("/getknobs", getKnobs, 0);
 
 				msgIn.empty(); // free space occupied by message
 

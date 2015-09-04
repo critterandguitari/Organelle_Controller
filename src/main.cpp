@@ -73,7 +73,7 @@ extern "C" {
 #define ADC1_DR_Address    0x40012440
 __IO uint16_t RegularConvData_Tab[9];
 uint16_t keyValuesRaw[25];
-uint16_t keyValues[25];
+uint16_t keyValues[4][25];
 uint16_t keyValuesLast[25];
 uint32_t knobValues[5];
 
@@ -95,6 +95,7 @@ uint32_t knobValues[5];
 #define MUX_7 MUX_SEL_A_1;MUX_SEL_B_1;MUX_SEL_C_1;
 
 SLIPEncodedSerial SLIPSerial;
+
 
 // reset to default turn on state
 void reset(OSCMessage &msg){
@@ -215,7 +216,7 @@ static void ADC_Config(void)
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
 
   /* Configure  as analog input */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
+  GPIO_InitStructure.GPIO_Pin = /*GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | */GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
@@ -370,9 +371,9 @@ uint32_t scanKeys(){
 		}
 		if (seqCount == 2){
 			keyValuesRaw[0] = RegularConvData_Tab[2]; // the aux key, cause we scan in reverse for some reason
-			keyValuesRaw[1 + muxSelCount] = RegularConvData_Tab[3];
-			keyValuesRaw[9 + muxSelCount] = RegularConvData_Tab[4];
-			keyValuesRaw[17 + muxSelCount] = RegularConvData_Tab[5];
+			keyValuesRaw[1 + muxSelCount] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_2)) ? 100 : 0;//RegularConvData_Tab[3];
+			keyValuesRaw[9 + muxSelCount] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_1)) ? 100 : 0;//RegularConvData_Tab[4];
+			keyValuesRaw[17 + muxSelCount] =(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_0)) ? 100 : 0;//RegularConvData_Tab[5];
 
 			knobValues[4] = RegularConvData_Tab[0];
 			knobValues[0] = RegularConvData_Tab[1];
@@ -404,35 +405,40 @@ void getKnobs(OSCMessage &msg){
 
 }
 
-void remapKeys(void){
-	keyValues[0] = keyValuesRaw[0];
+void remapKeys(){
+	static uint32_t cycleCount = 0;
 
-	keyValues[1] = keyValuesRaw[23];
-	keyValues[2] = keyValuesRaw[21];
-	keyValues[3] = keyValuesRaw[17];
-	keyValues[4] = keyValuesRaw[18];
-	keyValues[5] = keyValuesRaw[24];
-	keyValues[6] = keyValuesRaw[22];
-	keyValues[7] = keyValuesRaw[19];
-	keyValues[8] = keyValuesRaw[20];
+	keyValues[cycleCount][0] = keyValuesRaw[0];
 
-	keyValues[9] = keyValuesRaw[13];
-	keyValues[10] = keyValuesRaw[15];
-	keyValues[11] = keyValuesRaw[10];
-	keyValues[12] = keyValuesRaw[9];
-	keyValues[13] = keyValuesRaw[16];
-	keyValues[14] = keyValuesRaw[11];
-	keyValues[15] = keyValuesRaw[14];
-	keyValues[16] = keyValuesRaw[12];
+	keyValues[cycleCount][1] = keyValuesRaw[23];
+	keyValues[cycleCount][2] = keyValuesRaw[21];
+	keyValues[cycleCount][3] = keyValuesRaw[17];
+	keyValues[cycleCount][4] = keyValuesRaw[18];
+	keyValues[cycleCount][5] = keyValuesRaw[24];
+	keyValues[cycleCount][6] = keyValuesRaw[22];
+	keyValues[cycleCount][7] = keyValuesRaw[19];
+	keyValues[cycleCount][8] = keyValuesRaw[20];
 
-	keyValues[17] = keyValuesRaw[5];
-	keyValues[18] = keyValuesRaw[7];
-	keyValues[19] = keyValuesRaw[2];
-	keyValues[20] = keyValuesRaw[1];
-	keyValues[21] = keyValuesRaw[4];
-	keyValues[22] = keyValuesRaw[8];
-	keyValues[23] = keyValuesRaw[3];
-	keyValues[24] = keyValuesRaw[6];
+	keyValues[cycleCount][9] = keyValuesRaw[13];
+	keyValues[cycleCount][10] = keyValuesRaw[15];
+	keyValues[cycleCount][11] = keyValuesRaw[10];
+	keyValues[cycleCount][12] = keyValuesRaw[9];
+	keyValues[cycleCount][13] = keyValuesRaw[16];
+	keyValues[cycleCount][14] = keyValuesRaw[11];
+	keyValues[cycleCount][15] = keyValuesRaw[14];
+	keyValues[cycleCount][16] = keyValuesRaw[12];
+
+	keyValues[cycleCount][17] = keyValuesRaw[5];
+	keyValues[cycleCount][18] = keyValuesRaw[7];
+	keyValues[cycleCount][19] = keyValuesRaw[2];
+	keyValues[cycleCount][20] = keyValuesRaw[1];
+	keyValues[cycleCount][21] = keyValuesRaw[4];
+	keyValues[cycleCount][22] = keyValuesRaw[8];
+	keyValues[cycleCount][23] = keyValuesRaw[3];
+	keyValues[cycleCount][24] = keyValuesRaw[6];
+
+	cycleCount++;
+	cycleCount &= 0x3;  // i between 0-3
 }
 
 void sendKeyEvent(uint32_t note, uint32_t vel){
@@ -448,17 +454,71 @@ void sendKeyEvent(uint32_t note, uint32_t vel){
 	 msgKey.empty(); // free space occupied by message
 }
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+uint32_t getMax(uint32_t a, uint32_t b, uint32_t c, uint32_t d){
+	uint32_t e, f;
+	e = MAX(a,b);
+	f = MAX(c,d);
+	return MAX(e,f);
+}
+
 void checkKeyEvent(void){
-	uint32_t i;
+	uint32_t i, avg;
 
 	for (i=0; i<25; i++){
-		if ((keyValues[i] > 10) && (keyValuesLast[i] < 10))
+	/*	if ((keyValues[i] > 10) && (keyValuesLast[i] < 10))
 			sendKeyEvent(i, keyValues[i]);
 		if ((keyValuesLast[i] > 10) && (keyValues[i] < 10))
 			sendKeyEvent(i, 0);
-		keyValuesLast[i] = keyValues[i];
-	}
+		keyValuesLast[i] = keyValues[i];*/
+		if ( 	(keyValues[0][i] > 10) &&
+				(keyValues[1][i] > 10) &&
+				(keyValues[2][i] > 10) &&
+				(keyValues[3][i] > 10) )
+		{
 
+
+			if (keyValuesLast[i] < 10) {
+				OSCMessage msgKey("/key");
+				//avg = (keyValues[0][i] + keyValues[1][i] + keyValues[2][i] + keyValues[3][i]) / 4;
+				avg = getMax(keyValues[0][i], keyValues[1][i], keyValues[2][i], keyValues[3][i]);
+
+
+			  /*  msgKey.add((int32_t)keyValues[0][i]);
+				msgKey.add((int32_t)keyValues[1][i]);
+				msgKey.add((int32_t)keyValues[2][i]);
+				msgKey.add((int32_t)keyValues[3][i]);*/
+				msgKey.add((int32_t)i);
+				msgKey.add((int32_t)avg);
+
+				 SLIPSerial.beginPacket();
+				 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
+				 SLIPSerial.endPacket(); // mark the end of the OSC Packet
+				 msgKey.empty(); // free space occupied by message
+				 keyValuesLast[i] = avg;
+			}
+		}
+		if ( 	(keyValues[0][i] < 10) &&
+				(keyValues[1][i] < 10) &&
+				(keyValues[2][i] < 10) &&
+				(keyValues[3][i] < 10) )
+		{
+			if (keyValuesLast[i] > 10) {
+				OSCMessage msgKey("/key");
+				//avg = (keyValues[0][i] + keyValues[1][i] + keyValues[2][i] + keyValues[3][i]) / 4;
+
+				msgKey.add((int32_t)i);
+				msgKey.add(0);
+
+				 SLIPSerial.beginPacket();
+				 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
+				 SLIPSerial.endPacket(); // mark the end of the OSC Packet
+				 msgKey.empty(); // free space occupied by message
+				 keyValuesLast[i] = 0;//avg;
+			}
+		}
+	}
 }
 
 void getKeys(/*OSCMessage &msg*/){
@@ -468,20 +528,23 @@ void getKeys(/*OSCMessage &msg*/){
 	remapKeys();
 	checkKeyEvent();
 
-	/*
+ /*
 	OSCMessage msgKey("/key");
     uint32_t i;
-   for (i = 0; i < 25; i++){
-    	msgKey.add((int32_t)keyValues[i]);
+  for (i = 0; i < 25; i++){
+    	msgKey.add((int32_t)keyValuesRaw[i]);
     }
+
+	msgKey.add((int32_t)((GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_0)) ? 100 : 0));
 
 	 SLIPSerial.beginPacket();
 	 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
 	 SLIPSerial.endPacket(); // mark the end of the OSC Packet
 	 msgKey.empty(); // free space occupied by message
-	 */
+*/
 }
 
+uint32_t owen = 0;
 
 int main(int argc, char* argv[]) {
 
@@ -519,6 +582,13 @@ int main(int argc, char* argv[]) {
 	// end enc lines
 
 
+	// key lines
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
+
 	// timer_start();
 
 	// blink_led_init();
@@ -549,8 +619,9 @@ int main(int argc, char* argv[]) {
 	uint32_t muxNum = 0;
 	uint32_t muxNumLast = 0;
 
+
 	while (1)
-	{
+	{owen++;
 			  // use msgInSize hack cause endofPacket can return true at beginning and end of a packet
 			while((!SLIPSerial.endofPacket()) || (msgInSize < 4) ) {
 
@@ -563,6 +634,8 @@ int main(int argc, char* argv[]) {
 			  }
 			  muxNum = scanKeys();   // scan keys while we are waiting
 
+			  // every time mux gets back to 0, (1 / ms)
+			  // try to detect key presses
 			  if (muxNum != muxNumLast){
 				  if (muxNum == 0){
 					  numTimesScanned++;
@@ -571,7 +644,7 @@ int main(int argc, char* argv[]) {
 			  }
 			  muxNumLast = muxNum;
 
-			  if (numTimesScanned == 1000){
+			/*  if (numTimesScanned == 1000){
 					numTimesScanned = 0;
 					OSCMessage msgStat("/thousand");
 
@@ -579,7 +652,7 @@ int main(int argc, char* argv[]) {
 					 msgStat.send(SLIPSerial); // send the bytes to the SLIP stream
 					 SLIPSerial.endPacket(); // mark the end of the OSC Packet
 					 msgStat.empty(); // free space occupied by message
-			  }
+			  }*/
 
 			}
 			msgInSize = 0;

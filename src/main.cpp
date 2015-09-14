@@ -72,9 +72,9 @@ extern "C" {
 // ADC DMA stuff
 #define ADC1_DR_Address    0x40012440
 __IO uint16_t RegularConvData_Tab[9];
-uint16_t keyValuesRaw[25];
-uint16_t keyValues[4][25];
-uint16_t keyValuesLast[25];
+uint8_t keyValuesRaw[25];
+uint8_t keyValues[4][25];
+uint8_t keyValuesLast[25];
 uint32_t knobValues[5];
 
 // key mux
@@ -216,7 +216,7 @@ static void ADC_Config(void)
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
 
   /* Configure  as analog input */
-  GPIO_InitStructure.GPIO_Pin = /*GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | */GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
@@ -245,11 +245,6 @@ static void ADC_Config(void)
   ADC_Init(ADC1, &ADC_InitStructure);
 
   /* Convert the ADC1 Channel11 and channel10 with 55.5 Cycles as sampling time */
-  ADC_ChannelConfig(ADC1, ADC_Channel_10 , ADC_SampleTime_55_5Cycles);
-  ADC_ChannelConfig(ADC1, ADC_Channel_11 , ADC_SampleTime_55_5Cycles);
-  ADC_ChannelConfig(ADC1, ADC_Channel_12 , ADC_SampleTime_55_5Cycles);
-  ADC_ChannelConfig(ADC1, ADC_Channel_13 , ADC_SampleTime_55_5Cycles);
-
   ADC_ChannelConfig(ADC1, ADC_Channel_14 , ADC_SampleTime_55_5Cycles );
   ADC_ChannelConfig(ADC1, ADC_Channel_15 , ADC_SampleTime_55_5Cycles );
   ADC_ChannelConfig(ADC1, ADC_Channel_4 , ADC_SampleTime_55_5Cycles );
@@ -292,7 +287,7 @@ static void DMA_Config(void)
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)ADC1_DR_Address;
 	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)RegularConvData_Tab;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-	DMA_InitStructure.DMA_BufferSize = 9;
+	DMA_InitStructure.DMA_BufferSize = 5;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
@@ -358,33 +353,37 @@ uint32_t scanKeys(){
 	static uint32_t seqCount = 0;
 	static uint32_t muxSelCount = 0;
 
+	if (seqCount == 0){
+		keyMuxSel(muxSelCount);  // select the mux
+		muxSelCount++;        	// and increment for next time through
+		muxSelCount %= 8;
+	}
+	if (seqCount == 1){
+		// do nothing, wait for next conversion sequence since the muxes were just changed
+	}
+	if (seqCount == 2){
+		keyValuesRaw[0] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_3)) ? 100 : 0; // the aux key, cause we scan in reverse for some reason
+		keyValuesRaw[1 + muxSelCount] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_2)) ? 100 : 0;//RegularConvData_Tab[3];
+		keyValuesRaw[9 + muxSelCount] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_1)) ? 100 : 0;//RegularConvData_Tab[4];
+		keyValuesRaw[17 + muxSelCount] =(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_0)) ? 100 : 0;//RegularConvData_Tab[5];
+	}
+	seqCount++;
+	seqCount %= 3;
+	return muxSelCount;
+}
+
+void updateKnobs(){
+
 	// see if a new conversion is ready
 	if ((DMA_GetFlagStatus(DMA1_FLAG_TC1)) == SET ){
 		DMA_ClearFlag(DMA1_FLAG_TC1);
-		if (seqCount == 0){
-			keyMuxSel(muxSelCount);  // select the mux
-			muxSelCount++;        	// and increment for next time through
-			muxSelCount %= 8;
-		}
-		if (seqCount == 1){
-			// do nothing, wait for next conversion sequence since the muxes were just changed
-		}
-		if (seqCount == 2){
-			keyValuesRaw[0] = RegularConvData_Tab[2]; // the aux key, cause we scan in reverse for some reason
-			keyValuesRaw[1 + muxSelCount] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_2)) ? 100 : 0;//RegularConvData_Tab[3];
-			keyValuesRaw[9 + muxSelCount] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_1)) ? 100 : 0;//RegularConvData_Tab[4];
-			keyValuesRaw[17 + muxSelCount] =(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_0)) ? 100 : 0;//RegularConvData_Tab[5];
 
 			knobValues[4] = RegularConvData_Tab[0];
 			knobValues[0] = RegularConvData_Tab[1];
-			knobValues[1] = RegularConvData_Tab[6];
-			knobValues[3] = RegularConvData_Tab[7];
-			knobValues[2] = RegularConvData_Tab[8];
-		}
-		seqCount++;
-		seqCount %= 3;
+			knobValues[1] = RegularConvData_Tab[2];
+			knobValues[3] = RegularConvData_Tab[3];
+			knobValues[2] = RegularConvData_Tab[4];
 	}
-	return muxSelCount;
 }
 
 void getKnobs(OSCMessage &msg){
@@ -464,84 +463,53 @@ uint32_t getMax(uint32_t a, uint32_t b, uint32_t c, uint32_t d){
 }
 
 void checkKeyEvent(void){
-	uint32_t i, avg;
+	uint32_t i, j;
 
 	for (i=0; i<25; i++){
-	/*	if ((keyValues[i] > 10) && (keyValuesLast[i] < 10))
-			sendKeyEvent(i, keyValues[i]);
-		if ((keyValuesLast[i] > 10) && (keyValues[i] < 10))
-			sendKeyEvent(i, 0);
-		keyValuesLast[i] = keyValues[i];*/
-		if ( 	(keyValues[0][i] > 10) &&
-				(keyValues[1][i] > 10) &&
-				(keyValues[2][i] > 10) &&
-				(keyValues[3][i] > 10) )
+		if ( 	(keyValues[0][i]) &&
+				(keyValues[1][i]) &&
+				(keyValues[2][i]) &&
+				(keyValues[3][i]) )
 		{
 
 
-			if (keyValuesLast[i] < 10) {
+			if (!keyValuesLast[i]) {
 				OSCMessage msgKey("/key");
-				//avg = (keyValues[0][i] + keyValues[1][i] + keyValues[2][i] + keyValues[3][i]) / 4;
-				avg = getMax(keyValues[0][i], keyValues[1][i], keyValues[2][i], keyValues[3][i]);
 
-
-			  /*  msgKey.add((int32_t)keyValues[0][i]);
-				msgKey.add((int32_t)keyValues[1][i]);
-				msgKey.add((int32_t)keyValues[2][i]);
-				msgKey.add((int32_t)keyValues[3][i]);*/
 				msgKey.add((int32_t)i);
-				msgKey.add((int32_t)avg);
+				msgKey.add((int32_t)100);
 
 				 SLIPSerial.beginPacket();
 				 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
 				 SLIPSerial.endPacket(); // mark the end of the OSC Packet
 				 msgKey.empty(); // free space occupied by message
-				 keyValuesLast[i] = avg;
+				 keyValuesLast[i] = 100;
 			}
 		}
-		if ( 	(keyValues[0][i] < 10) &&
-				(keyValues[1][i] < 10) &&
-				(keyValues[2][i] < 10) &&
-				(keyValues[3][i] < 10) )
+		if ( 	(!keyValues[0][i]) &&
+				(!keyValues[1][i]) &&
+				(!keyValues[2][i]) &&
+				(!keyValues[3][i]) )
 		{
-			if (keyValuesLast[i] > 10) {
+			if (keyValuesLast[i]) {
 				OSCMessage msgKey("/key");
-				//avg = (keyValues[0][i] + keyValues[1][i] + keyValues[2][i] + keyValues[3][i]) / 4;
 
 				msgKey.add((int32_t)i);
-				msgKey.add(0);
+				msgKey.add((int32_t)0);
 
 				 SLIPSerial.beginPacket();
 				 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
 				 SLIPSerial.endPacket(); // mark the end of the OSC Packet
 				 msgKey.empty(); // free space occupied by message
-				 keyValuesLast[i] = 0;//avg;
+				 keyValuesLast[i] = 0;
 			}
 		}
 	}
 }
 
 void getKeys(/*OSCMessage &msg*/){
-
-
-
 	remapKeys();
 	checkKeyEvent();
-
- /*
-	OSCMessage msgKey("/key");
-    uint32_t i;
-  for (i = 0; i < 25; i++){
-    	msgKey.add((int32_t)keyValuesRaw[i]);
-    }
-
-	msgKey.add((int32_t)((GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_0)) ? 100 : 0));
-
-	 SLIPSerial.beginPacket();
-	 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
-	 SLIPSerial.endPacket(); // mark the end of the OSC Packet
-	 msgKey.empty(); // free space occupied by message
-*/
 }
 
 uint32_t owen = 0;
@@ -584,7 +552,7 @@ int main(int argc, char* argv[]) {
 
 	// key lines
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
@@ -615,13 +583,36 @@ int main(int argc, char* argv[]) {
 	put_char_small('O', 48, 0);
 	ssd1306_refresh();
 
-	uint32_t numTimesScanned = 0;
-	uint32_t muxNum = 0;
-	uint32_t muxNumLast = 0;
 
+	// wait for start message so we aren't sending stuff during boot
+	while (1) {
+		// TODO, fix up this SLIP serial business so it doesn't fuck shit up
+		  // use msgInSize hack cause endofPacket can return true at beginning and end of a packet
+		while((!SLIPSerial.endofPacket()) || (msgInSize < 4) ) {
+
+			if( (size =SLIPSerial.available()) > 0) {
+				while(size--) {
+					msgIn.fill(SLIPSerial.read());
+					msgInSize++;
+				}
+			}
+		}
+		msgInSize = 0;
+
+		if(!msgIn.hasError()) {
+			// led
+			if (msgIn.fullMatch("/ready", 0)){
+				break;
+				msgIn.empty(); // free space occupied by message
+			}
+		}
+		else {   // just empty it if there was an error
+			msgIn.empty(); // free space occupied by message
+		}
+	} // waiting for /ready command
 
 	while (1)
-	{owen++;
+	{
 			  // use msgInSize hack cause endofPacket can return true at beginning and end of a packet
 			while((!SLIPSerial.endofPacket()) || (msgInSize < 4) ) {
 
@@ -632,17 +623,12 @@ int main(int argc, char* argv[]) {
 				  msgInSize++;
 				}
 			  }
-			  muxNum = scanKeys();   // scan keys while we are waiting
 
 			  // every time mux gets back to 0, (1 / ms)
-			  // try to detect key presses
-			  if (muxNum != muxNumLast){
-				  if (muxNum == 0){
-					  numTimesScanned++;
-					  getKeys(); // and send em out if we got em
-				  }
+			  if (scanKeys() == 0){
+				  getKeys(); // and send em out if we got em
 			  }
-			  muxNumLast = muxNum;
+			  updateKnobs();
 
 			/*  if (numTimesScanned == 1000){
 					numTimesScanned = 0;

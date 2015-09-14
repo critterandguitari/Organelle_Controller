@@ -25,12 +25,13 @@ void spi_init(void){
      RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 
      /* Configure PA4 to output pushpull mode */
-     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;                                    //pin 4 only
+  /*   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;                                    //pin 4 only
      GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
      GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
      GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
      GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
      GPIO_Init(GPIOA, &GPIO_InitStructure);
+     */
 
      /* Configure PA5, PA6 and PA7 for SPI */
      GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5 | /*GPIO_Pin_6 |*/ GPIO_Pin_7;        //pins 5 to 7 inclusive

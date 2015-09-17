@@ -9,11 +9,11 @@
 #include "uart.h"
 #include "BlinkLed.h"
 
-#define UART2_BUFFER_SIZE 256
 
- uint8_t  uart2_recv_buf[UART2_BUFFER_SIZE];
- uint16_t  uart2_recv_buf_head = 0;
- uint16_t  uart2_recv_buf_tail = 0;
+
+uint8_t  uart2_recv_buf[UART2_BUFFER_SIZE];
+uint16_t  uart2_recv_buf_head = 0;
+uint16_t  uart2_recv_buf_tail = 0;
 
 
 

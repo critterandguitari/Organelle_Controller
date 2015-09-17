@@ -23,10 +23,13 @@
  For bug reports and feature requests please email me at yotam@cnmat.berkeley.edu
  */
 
+#include <stdio.h>
 #include "OSCMessage.h"
 #include "OSCMatch.h"
 #include "OSCTiming.h"
-#include "SLIPEncodedSerial.h"
+//#include "SLIPEncodedSerial.h"
+#include "SimpleWriter.h"
+
 
 extern osctime_t zerotime;
 /*=============================================================================
@@ -381,6 +384,7 @@ bool OSCMessage::hasError(){
         retError |= datum->error != OSC_OK;
     }
 	return retError;
+    //return false;
 }
 
 OSCErrorCode OSCMessage::getError(){
@@ -391,7 +395,8 @@ OSCErrorCode OSCMessage::getError(){
     SENDING
  =============================================================================*/
 
-void OSCMessage::send(SLIPEncodedSerial &p){
+void OSCMessage::send(SimpleWriter &p){
+    p.start();  // start packet
     //don't send a message with errors
     if (hasError()){
         return;
@@ -465,6 +470,7 @@ void OSCMessage::send(SLIPEncodedSerial &p){
             p.write(ptr, datum->bytes);
         }
     }
+    p.end(); // start packet
 }
 
 /*=============================================================================
@@ -648,9 +654,13 @@ void OSCMessage::decode(uint8_t incomingByte){
                     OSCData * datum = getOSCData(i);
                     if (datum->error == OSC_OK){
                         //compute the padding size for the data
+
                         int dataPad = padSize(datum->bytes);
-                        if (dataPad == 0){
-                        	decodeState = DATA;
+                        //printf("pad: %d for bytes: %d\n", dataPad, datum->bytes);
+                        
+                        // if pad is 0, then the data is already aligned and the buffer should not be cleared
+                        if(dataPad == 0) {
+                            decodeState = DATA;
                         }
                         else if (incomingBufferSize == dataPad){
                             clearIncomingBuffer();

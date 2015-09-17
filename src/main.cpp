@@ -19,7 +19,9 @@ extern "C" {
 }
 
 #include "OSC/OSCMessage.h"
-#include "OSC/SLIPEncodedSerial.h"
+#include "SLIPEncodedSerial.h"
+#include "OSC/SimpleWriter.h"
+#include "Serial.h"
 
 // ----------------------------------------------------------------------------
 //
@@ -72,6 +74,8 @@ extern "C" {
 // ADC DMA stuff
 #define ADC1_DR_Address    0x40012440
 __IO uint16_t RegularConvData_Tab[9];
+
+// keys and knobs
 uint8_t keyValuesRaw[25];
 uint8_t keyValues[4][25];
 uint8_t keyValuesLast[25];
@@ -94,7 +98,11 @@ uint32_t knobValues[5];
 #define MUX_6 MUX_SEL_A_0;MUX_SEL_B_1;MUX_SEL_C_1;
 #define MUX_7 MUX_SEL_A_1;MUX_SEL_B_1;MUX_SEL_C_1;
 
-SLIPEncodedSerial SLIPSerial;
+
+// OSC stuff
+SLIPEncodedSerial slip;
+Serial serialUart2;
+SimpleWriter oscBuf;
 
 // for outputting to screen
 uint8_t spi_out_buf[130];
@@ -108,11 +116,6 @@ void reset(OSCMessage &msg){
 
 void renumber(OSCMessage &msg){
   // send out a
-  /*OSCMessage  msgOut("asdf");
-  SLIPSerial.beginPacket();
-  msgOut.send(SLIPSerial);
-  SLIPSerial.endPacket();
-  msgOut.empty();*/
   blink_led_on();
 }
 
@@ -152,6 +155,8 @@ void ledControl(OSCMessage &msg) {
 	  // digitalWrite(ledPin, LOW);
 	  if (msg.isInt(0)) {
 	    stat = msg.getInt(0);
+
+	    stat %= 8;
 
 	    if (stat == 0) {
 	      AUX_LED_RED_OFF;
@@ -194,7 +199,6 @@ void ledControl(OSCMessage &msg) {
 	      AUX_LED_BLUE_ON;
 	    }
 	  }
-
 }
 
 
@@ -401,9 +405,8 @@ void getKnobs(OSCMessage &msg){
 		msgKnobs.add((int32_t)knobValues[i]);
 	}
 
-	SLIPSerial.beginPacket();
-	msgKnobs.send(SLIPSerial); // send the bytes to the SLIP stream
-	SLIPSerial.endPacket(); // mark the end of the OSC Packet
+	msgKnobs.send(oscBuf);
+	slip.sendMessage(oscBuf.buffer, oscBuf.length, serialUart2);
 	msgKnobs.empty(); // free space occupied by message
 
 }
@@ -444,28 +447,6 @@ void remapKeys(){
 	cycleCount &= 0x3;  // i between 0-3
 }
 
-void sendKeyEvent(uint32_t note, uint32_t vel){
-
-	OSCMessage msgKey("/key");
-
-    msgKey.add((int32_t)note);
-    msgKey.add((int32_t)vel);
-
-	 SLIPSerial.beginPacket();
-	 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
-	 SLIPSerial.endPacket(); // mark the end of the OSC Packet
-	 msgKey.empty(); // free space occupied by message
-}
-
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-uint32_t getMax(uint32_t a, uint32_t b, uint32_t c, uint32_t d){
-	uint32_t e, f;
-	e = MAX(a,b);
-	f = MAX(c,d);
-	return MAX(e,f);
-}
-
 void checkKeyEvent(void){
 	uint32_t i, j;
 
@@ -483,11 +464,12 @@ void checkKeyEvent(void){
 				msgKey.add((int32_t)i);
 				msgKey.add((int32_t)100);
 
-				 SLIPSerial.beginPacket();
-				 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
-				 SLIPSerial.endPacket(); // mark the end of the OSC Packet
-				 msgKey.empty(); // free space occupied by message
-				 keyValuesLast[i] = 100;
+
+				msgKey.send(oscBuf);
+				slip.sendMessage(oscBuf.buffer, oscBuf.length, serialUart2);
+
+				msgKey.empty(); // free space occupied by message
+				keyValuesLast[i] = 100;
 			}
 		}
 		if ( 	(!keyValues[0][i]) &&
@@ -501,9 +483,9 @@ void checkKeyEvent(void){
 				msgKey.add((int32_t)i);
 				msgKey.add((int32_t)0);
 
-				 SLIPSerial.beginPacket();
-				 msgKey.send(SLIPSerial); // send the bytes to the SLIP stream
-				 SLIPSerial.endPacket(); // mark the end of the OSC Packet
+				 msgKey.send(oscBuf);
+				 slip.sendMessage(oscBuf.buffer, oscBuf.length, serialUart2);
+
 				 msgKey.empty(); // free space occupied by message
 				 keyValuesLast[i] = 0;
 			}
@@ -543,7 +525,6 @@ int main(int argc, char* argv[]) {
 	GPIO_SetBits(GPIOC, GPIO_Pin_8); //
 	// end mux select lines
 
-
 	// Enc lines
 	// config as input
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
@@ -579,8 +560,6 @@ int main(int argc, char* argv[]) {
 	timer_start();
 	// Infinite loop
 
-	int msgInSize = 0;
-
 	// oled init
 	ssd1306_init(0);
 	put_char_small('I', 0, 0);
@@ -588,84 +567,36 @@ int main(int argc, char* argv[]) {
 	ssd1306_refresh();
 
 
-	// wait for start message so we aren't sending stuff during boot
 	while (1) {
-		// TODO, fix up this SLIP serial business so it doesn't fuck shit up
-		  // use msgInSize hack cause endofPacket can return true at beginning and end of a packet
-		while((!SLIPSerial.endofPacket()) || (msgInSize < 4) ) {
+		if (slip.recvMessage(serialUart2)) {
+			// fill the message and dispatch it
 
-			if( (size =SLIPSerial.available()) > 0) {
-				while(size--) {
-					msgIn.fill(SLIPSerial.read());
-					msgInSize++;
+			msgIn.fill(slip.decodedBuf, slip.decodedLength);
+
+			// dispatch it
+			if(!msgIn.hasError()) {
+				// wait for start message so we aren't sending stuff during boot
+				if (msgIn.fullMatch("/ready", 0)){
+					msgIn.empty(); // free space occupied by message
+					break;
 				}
+				msgIn.empty();
 			}
-		}
-		msgInSize = 0;
-
-		if(!msgIn.hasError()) {
-			if (msgIn.fullMatch("/ready", 0)){
+			else {   // just empty it if there was an error
 				msgIn.empty(); // free space occupied by message
-				break;
 			}
-			msgIn.empty(); // free space occupied by message
-		}
-		else {   // just empty it if there was an error
-			msgIn.empty(); // free space occupied by message
 		}
 	} // waiting for /ready command
 
-	while (1)
-	{
-			  // use msgInSize hack cause endofPacket can return true at beginning and end of a packet
-			while((!SLIPSerial.endofPacket()) || (msgInSize < 4) ) {
 
-			  if( (size =SLIPSerial.available()) > 0) {
+	while (1) {
+		if (slip.recvMessage(serialUart2)) {
+			// fill the message and dispatch it
 
-				while(size--) {
-				  msgIn.fill(SLIPSerial.read());
-				  msgInSize++;
-				}
-			  }
+			msgIn.fill(slip.decodedBuf, slip.decodedLength);
 
-			  // every time mux gets back to 0, (1 / ms)
-			  if (scanKeys() == 0){
-				  getKeys(); // and send em out if we got em
-			  }
-			  updateKnobs();
-
-
-			  // check if there are bytes that need to go out SPI
-			/*  if (spi_out_buf_remaining){
-				  // try to output new byte
-			      if(!SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {
-					  SPI_SendData8(SPI1, spi_out_buf[spi_out_buf_index]);
-			      }
-
-				  spi_out_buf_remaining--;
-				  spi_out_buf_index++;
-			  }
-			  else {
-				  // reset the index, rais CS
-				  spi_out_buf_index = 0;
-				  ssd1306_cs(1);
-			  }*/
-
-			/*  if (numTimesScanned == 1000){
-					numTimesScanned = 0;
-					OSCMessage msgStat("/thousand");
-
-					 SLIPSerial.beginPacket();
-					 msgStat.send(SLIPSerial); // send the bytes to the SLIP stream
-					 SLIPSerial.endPacket(); // mark the end of the OSC Packet
-					 msgStat.empty(); // free space occupied by message
-			  }*/
-
-			}
-			msgInSize = 0;
-
+			// dispatch it
 			if(!msgIn.hasError()) {
-
 
 				// led
 				msgIn.dispatch("/led", ledControl, 0);
@@ -679,10 +610,17 @@ int main(int argc, char* argv[]) {
 				msgIn.empty(); // free space occupied by message
 
 			}
-		   else {   // just empty it if there was an error
+			else {   // just empty it if there was an error
 				msgIn.empty(); // free space occupied by message
 			}
+		}
 
+
+		// every time mux gets back to 0, (1 / ms)
+		if (scanKeys() == 0){
+		  getKeys(); // and send em out if we got em
+		}
+		updateKnobs();
 
 	} // Infinite loop, never return.
 }

@@ -1,5 +1,5 @@
-src/OSC/SLIPEncodedSerial.o: ../src/OSC/SLIPEncodedSerial.cpp \
- ../src/OSC/SLIPEncodedSerial.h ../src/OSC/../uart.h \
+src/SLIPEncodedSerial.o: ../src/SLIPEncodedSerial.cpp \
+ ../src/SLIPEncodedSerial.h ../src/Serial.h ../src/uart.h \
  ../system/include/cmsis/stm32f0xx.h ../system/include/cmsis/core_cm0.h \
  ../system/include/cmsis/core_cmInstr.h \
  ../system/include/cmsis/core_cmFunc.h \
@@ -28,9 +28,11 @@ src/OSC/SLIPEncodedSerial.o: ../src/OSC/SLIPEncodedSerial.cpp \
  ../system/include/stm32f0-stdperiph/stm32f0xx_wwdg.h \
  ../system/include/stm32f0-stdperiph/stm32f0xx_misc.h
 
-../src/OSC/SLIPEncodedSerial.h:
+../src/SLIPEncodedSerial.h:
 
-../src/OSC/../uart.h:
+../src/Serial.h:
+
+../src/uart.h:
 
 ../system/include/cmsis/stm32f0xx.h:
 

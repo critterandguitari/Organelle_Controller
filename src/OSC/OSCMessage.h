@@ -27,7 +27,7 @@
 #define OSCMESSAGE_h
 
 #include "OSCData.h"
-#include "SLIPEncodedSerial.h"
+#include "SimpleWriter.h"
 //include <Print.h>
 
 
@@ -312,7 +312,8 @@ public:
  =============================================================================*/
     
     //send the message
-    void send(SLIPEncodedSerial &p);
+    //void send(SLIPEncodedSerial &p);
+    void send(SimpleWriter &p);
     
     //fill the message from a byte stream
     void fill(uint8_t);

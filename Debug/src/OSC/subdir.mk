@@ -7,7 +7,7 @@ CPP_SRCS += \
 ../src/OSC/OSCData.cpp \
 ../src/OSC/OSCMessage.cpp \
 ../src/OSC/OSCTiming.cpp \
-../src/OSC/SLIPEncodedSerial.cpp 
+../src/OSC/SimpleWriter.cpp 
 
 C_SRCS += \
 ../src/OSC/OSCMatch.c 
@@ -17,7 +17,7 @@ OBJS += \
 ./src/OSC/OSCMatch.o \
 ./src/OSC/OSCMessage.o \
 ./src/OSC/OSCTiming.o \
-./src/OSC/SLIPEncodedSerial.o 
+./src/OSC/SimpleWriter.o 
 
 C_DEPS += \
 ./src/OSC/OSCMatch.d 
@@ -26,7 +26,7 @@ CPP_DEPS += \
 ./src/OSC/OSCData.d \
 ./src/OSC/OSCMessage.d \
 ./src/OSC/OSCTiming.d \
-./src/OSC/SLIPEncodedSerial.d 
+./src/OSC/SimpleWriter.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

@@ -8,6 +8,8 @@
 #ifndef UART_H_
 #define UART_H_
 
+#define UART2_BUFFER_SIZE 256
+
 #include "stm32f0xx.h"
 
 

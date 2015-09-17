@@ -5,6 +5,8 @@
 
 
 uint8_t pix_buf[1024];
+extern uint8_t spi_out_buf[];
+extern uint8_t spi_out_buf_remaining;
 
     //  line = pgm_read_byte(font+(c*5)+i);
 
@@ -33,18 +35,21 @@ void put_pixel(uint8_t on, uint8_t x, uint8_t y){
     y &= 0x3f;
 
     // subtract cause its flipped
-    page = 7 - (y / 8);
-    column = 127 - x;
+   // page = 7 - (y / 8);
+   // column = 127 - x;
+
+    page = y / 8;
+    column = x;
 
     tmp8 = pix_buf[(page * 128) + column];
     
     if (on){
-       //tmp8 |= (1 << (y & 0x7)); 
-       tmp8 |= (1 << (7 - (y & 0x7))); 
+       tmp8 |= (1 << (y & 0x7));
+       //tmp8 |= (1 << (7 - (y & 0x7)));
     }
     else{
-       //tmp8 &= ~(1 << (y & 0x7));
-       tmp8 &= ~(1 << (7 - (y & 0x7)));
+       tmp8 &= ~(1 << (y & 0x7));
+      // tmp8 &= ~(1 << (7 - (y & 0x7)));
    }
 
    pix_buf[(page * 128) + column] = tmp8;
@@ -216,17 +221,20 @@ void ssd1306_refresh_line(uint8_t page)
     ssd1306_cs(1);
     ssd1306_dc(1);
     ssd1306_cs(0);
-
    
     uint16_t i;
     uint8_t byte;
-    for (i=0; i<128; i++) 
+    for (i=0; i<128; i++)
     {
+
         byte = pix_buf[i + (page * 128)];
+    	//spi_out_buf[i] = byte;
+
     	SPI_SendData8(SPI1, byte);
     	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY));   // wait till done sending
     }
 
+    spi_out_buf_remaining = 128;
     ssd1306_cs(1);
 }
 

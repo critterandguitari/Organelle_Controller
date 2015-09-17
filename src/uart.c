@@ -9,11 +9,11 @@
 #include "uart.h"
 #include "BlinkLed.h"
 
-#define UART2_BUFFER_SIZE 64
+#define UART2_BUFFER_SIZE 256
 
  uint8_t  uart2_recv_buf[UART2_BUFFER_SIZE];
- uint8_t  uart2_recv_buf_head = 0;
- uint8_t  uart2_recv_buf_tail = 0;
+ uint16_t  uart2_recv_buf_head = 0;
+ uint16_t  uart2_recv_buf_tail = 0;
 
 
 
@@ -39,8 +39,8 @@ void uart2_init(void){
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
     //Configure USART2 setting:         ----------------------------
-   // USART_InitStructure.USART_BaudRate = 500000;
-    USART_InitStructure.USART_BaudRate = 115200;
+    USART_InitStructure.USART_BaudRate = 500000;
+    //USART_InitStructure.USART_BaudRate = 115200;
     USART_InitStructure.USART_WordLength = USART_WordLength_8b;
     USART_InitStructure.USART_StopBits = USART_StopBits_1;
     USART_InitStructure.USART_Parity = USART_Parity_No;
@@ -116,7 +116,7 @@ void USART2_IRQHandler(void)
 
 
         uart2_recv_buf_head++;
-        uart2_recv_buf_head %= UART2_BUFFER_SIZE;  // 32 bytes
+        uart2_recv_buf_head %= UART2_BUFFER_SIZE;  //
         //blink_led_off();
     }
 

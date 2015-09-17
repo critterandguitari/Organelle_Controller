@@ -96,6 +96,10 @@ uint32_t knobValues[5];
 
 SLIPEncodedSerial SLIPSerial;
 
+// for outputting to screen
+uint8_t spi_out_buf[130];
+uint8_t spi_out_buf_remaining = 0;
+uint8_t spi_out_buf_index = 0;
 
 // reset to default turn on state
 void reset(OSCMessage &msg){
@@ -600,11 +604,11 @@ int main(int argc, char* argv[]) {
 		msgInSize = 0;
 
 		if(!msgIn.hasError()) {
-			// led
 			if (msgIn.fullMatch("/ready", 0)){
-				break;
 				msgIn.empty(); // free space occupied by message
+				break;
 			}
+			msgIn.empty(); // free space occupied by message
 		}
 		else {   // just empty it if there was an error
 			msgIn.empty(); // free space occupied by message
@@ -629,6 +633,23 @@ int main(int argc, char* argv[]) {
 				  getKeys(); // and send em out if we got em
 			  }
 			  updateKnobs();
+
+
+			  // check if there are bytes that need to go out SPI
+			/*  if (spi_out_buf_remaining){
+				  // try to output new byte
+			      if(!SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY)) {
+					  SPI_SendData8(SPI1, spi_out_buf[spi_out_buf_index]);
+			      }
+
+				  spi_out_buf_remaining--;
+				  spi_out_buf_index++;
+			  }
+			  else {
+				  // reset the index, rais CS
+				  spi_out_buf_index = 0;
+				  ssd1306_cs(1);
+			  }*/
 
 			/*  if (numTimesScanned == 1000){
 					numTimesScanned = 0;

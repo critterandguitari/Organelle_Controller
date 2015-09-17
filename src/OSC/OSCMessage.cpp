@@ -649,7 +649,10 @@ void OSCMessage::decode(uint8_t incomingByte){
                     if (datum->error == OSC_OK){
                         //compute the padding size for the data
                         int dataPad = padSize(datum->bytes);
-                        if (incomingBufferSize == dataPad){
+                        if (dataPad == 0){
+                        	decodeState = DATA;
+                        }
+                        else if (incomingBufferSize == dataPad){
                             clearIncomingBuffer();
                             decodeState = DATA;
                         }

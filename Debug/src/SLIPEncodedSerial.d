@@ -26,7 +26,7 @@ src/SLIPEncodedSerial.o: ../src/SLIPEncodedSerial.cpp \
  ../system/include/stm32f0-stdperiph/stm32f0xx_tim.h \
  ../system/include/stm32f0-stdperiph/stm32f0xx_usart.h \
  ../system/include/stm32f0-stdperiph/stm32f0xx_wwdg.h \
- ../system/include/stm32f0-stdperiph/stm32f0xx_misc.h
+ ../system/include/stm32f0-stdperiph/stm32f0xx_misc.h ../src/BlinkLed.h
 
 ../src/SLIPEncodedSerial.h:
 
@@ -91,3 +91,5 @@ src/SLIPEncodedSerial.o: ../src/SLIPEncodedSerial.cpp \
 ../system/include/stm32f0-stdperiph/stm32f0xx_wwdg.h:
 
 ../system/include/stm32f0-stdperiph/stm32f0xx_misc.h:
+
+../src/BlinkLed.h:

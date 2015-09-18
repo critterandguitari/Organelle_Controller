@@ -3,6 +3,7 @@
 
 extern "C" {
 #include "uart.h"
+#include "BlinkLed.h"
 }
 
 extern uint8_t  uart2_recv_buf[];
@@ -49,10 +50,11 @@ int SLIPEncodedSerial::recvMessage(Serial &s)
         if (s.rxBufTail >= (RX_BUF_SIZE - 1)) s.rxBufTail = 0;*/
 
     while (uart2_recv_buf_tail != uart2_recv_buf_head) {
-
+    	//AUX_LED_RED_ON;
         uint8_t tmp8 = uart2_recv_buf[uart2_recv_buf_tail++];
         uart2_recv_buf_tail %= UART2_BUFFER_SIZE;
-    
+        //AUX_LED_RED_OFF;
+
       //  uint8_t tmp8 = serialIn[i];
         
         if (rstate == WAITING) {
@@ -64,7 +66,11 @@ int SLIPEncodedSerial::recvMessage(Serial &s)
             }
         } // waiting
         else if (rstate == RECEIVING){
-            if (tmp8 == eot) {  //TODO:  exit if message len > max
+        	if (rxPacketIndex >= MAX_MSG_SIZE){  //TODO:  does this want to be max_msg_size * 2
+                rstate = WAITING;
+            	AUX_LED_RED_ON;
+        	}
+        	else if (tmp8 == eot) {
                 rstate = WAITING;
                 decode(rxPacket, rxPacketIndex);
                 return 1;
@@ -74,6 +80,8 @@ int SLIPEncodedSerial::recvMessage(Serial &s)
                 rstate = RECEIVING;
             }
         } //receiving
+
+
     } // gettin bytes
     return 0;
 }

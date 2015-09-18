@@ -566,10 +566,14 @@ int main(int argc, char* argv[]) {
 	put_char_small('O', 48, 0);
 	ssd1306_refresh();
 
+	AUX_LED_RED_OFF;
+	AUX_LED_GREEN_OFF;
+	AUX_LED_BLUE_OFF;
 
 	while (1) {
 		if (slip.recvMessage(serialUart2)) {
 			// fill the message and dispatch it
+
 
 			msgIn.fill(slip.decodedBuf, slip.decodedLength);
 
@@ -585,6 +589,7 @@ int main(int argc, char* argv[]) {
 			else {   // just empty it if there was an error
 				msgIn.empty(); // free space occupied by message
 			}
+
 		}
 	} // waiting for /ready command
 

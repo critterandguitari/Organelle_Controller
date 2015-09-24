@@ -23,39 +23,6 @@ extern "C" {
 #include "OSC/SimpleWriter.h"
 #include "Serial.h"
 
-// ----------------------------------------------------------------------------
-//
-// STM32F0 led blink sample (trace via $(trace)).
-//
-// In debug configurations, demonstrate how to print a greeting message
-// on the trace device. In release configurations the message is
-// simply discarded.
-//
-// To demonstrate POSIX retargetting, reroute the STDOUT and STDERR to the
-// trace device and display messages on both of them.
-//
-// Then demonstrates how to blink a led with 1Hz, using a
-// continuous loop and SysTick delays.
-//
-// On DEBUG, the uptime in seconds is also displayed on the trace device.
-//
-// Trace support is enabled by adding the TRACE macro definition.
-// By default the trace messages are forwarded to the $(trace) output,
-// but can be rerouted to any device or completely suppressed, by
-// changing the definitions required in system/src/diag/trace_impl.c
-// (currently OS_USE_TRACE_ITM, OS_USE_TRACE_SEMIHOSTING_DEBUG/_STDOUT).
-//
-// The external clock frequency is specified as a preprocessor definition
-// passed to the compiler via a command line option (see the 'C/C++ General' ->
-// 'Paths and Symbols' -> the 'Symbols' tab, if you want to change it).
-// The value selected during project creation was HSE_VALUE=8000000.
-//
-// Note: The default clock settings take the user defined HSE_VALUE and try
-// to reach the maximum possible system clock. For the default 8MHz input
-// the result is guaranteed, but for other values it might not be possible,
-// so please adjust the PLL settings in system/src/cmsis/system_stm32f0xx.c
-//
-
 // ----- Timing definitions -------------------------------------------------
 
 // Keep the LED on for 2/3 of a second.
@@ -98,7 +65,6 @@ uint32_t knobValues[5];
 #define MUX_6 MUX_SEL_A_0;MUX_SEL_B_1;MUX_SEL_C_1;
 #define MUX_7 MUX_SEL_A_1;MUX_SEL_B_1;MUX_SEL_C_1;
 
-
 // OSC stuff
 SLIPEncodedSerial slip;
 Serial serialUart2;
@@ -133,9 +99,6 @@ void oledControl(OSCMessage &msg){
 	}
 	if (msg.isBlob(1)) {
 	  msg.getBlob(1, tmp, 132);
-	//  SLIPSerial.beginPacket();
-	//  msg.send(SLIPSerial);
-	//  SLIPSerial.endPacket();
 	}
 
 	// shift array 4 spaces cause first 4 bytes are the length of blob
@@ -148,7 +111,6 @@ void oledControl(OSCMessage &msg){
 void ledControl(OSCMessage &msg) {
 
 	  blink_led_on();
-
 
 	  int stat;
 
@@ -498,6 +460,51 @@ void getKeys(/*OSCMessage &msg*/){
 	checkKeyEvent();
 }
 
+void checkEncoder(void){
+
+	static uint8_t encoder_last = 0;
+    uint8_t encoder = 0;
+
+    static uint8_t encoder_button_last = 1;
+    uint8_t encoder_button = 0;
+
+
+    encoder =  0;//(((PINC >> 7) & 1) << 1) | ((PINC>>6) & 1);
+    if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_14)) encoder |= 0x1;
+    if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_15)) encoder |= 0x2;
+
+    if (encoder != encoder_last){
+
+        if (encoder_last == 0){
+        	OSCMessage msgEncoder("/enc");
+            if (encoder == 2) msgEncoder.add(0);
+            if (encoder == 1) msgEncoder.add(1);
+    		msgEncoder.send(oscBuf);
+    		slip.sendMessage(oscBuf.buffer, oscBuf.length, serialUart2);
+        }
+        if (encoder_last == 3){
+        	OSCMessage msgEncoder("/enc");
+            if (encoder == 1) msgEncoder.add(0);
+            if (encoder == 2) msgEncoder.add(1);
+    		msgEncoder.send(oscBuf);
+    		slip.sendMessage(oscBuf.buffer, oscBuf.length, serialUart2);
+        }
+        encoder_last = encoder;
+
+        //msgEncoder.setAddress("/enc");
+    }
+
+    encoder_button = (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_13));
+    if (encoder_button != encoder_button_last){
+    	OSCMessage msgEncoder("/encbut");
+        if (encoder_button == 0) msgEncoder.add(0);
+        if (encoder_button == 1) msgEncoder.add(1);
+		msgEncoder.send(oscBuf);
+		slip.sendMessage(oscBuf.buffer, oscBuf.length, serialUart2);
+    	encoder_button_last = encoder_button;
+    }
+}
+
 uint32_t owen = 0;
 
 int main(int argc, char* argv[]) {
@@ -569,6 +576,7 @@ int main(int argc, char* argv[]) {
 	AUX_LED_RED_OFF;
 	AUX_LED_GREEN_OFF;
 	AUX_LED_BLUE_OFF;
+	stopwatchStart();
 
 	while (1) {
 		if (slip.recvMessage(serialUart2)) {
@@ -626,6 +634,25 @@ int main(int argc, char* argv[]) {
 		  getKeys(); // and send em out if we got em
 		}
 		updateKnobs();
+
+		// check encoder
+		checkEncoder();
+
+
+
+		/*if (stopwatchReport() > 1000 ){
+			stopwatchStart();
+			OSCMessage msgKey("/key");
+
+			msgKey.add((int32_t)4);
+			msgKey.add((int32_t)100);
+
+		    ssd1306_cs(0);
+			msgKey.send(oscBuf);
+			slip.sendMessage(oscBuf.buffer, oscBuf.length, serialUart2);
+		    ssd1306_cs(1);
+			msgKey.empty(); // free space occupied by message
+		}*/
 
 	} // Infinite loop, never return.
 }

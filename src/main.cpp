@@ -480,6 +480,43 @@ void checkEncoder(void){
     }
 }
 
+void shutdown(OSCMessage &msg) {
+
+	int i;
+	char progressStr[20];
+	int len = 0;
+	int progress = 0;
+
+	// clear screen
+	for (i=0; i< 1024; i++){
+		pix_buf[i] = 0;
+	}
+
+/*
+	len = sprintf(progressStr, "starting: %d %%", progress);
+	println_8(progressStr, len, 8, 52);
+	ssd1306_refresh();
+	*/
+
+	stopwatchStart();
+	while (progress < 99){
+		if (stopwatchReport() > 200){
+			stopwatchStart();
+			len = sprintf(progressStr, "shutting down: %d %%", progress++);
+			println_8(progressStr, len, 8, 52);
+			ssd1306_refresh();
+		}
+	}
+	// clear screen
+	for (i=0; i< 1024; i++){
+		pix_buf[i] = 0;
+	}
+	len = sprintf(progressStr, "shutdown complete.", progress++);
+	println_8(progressStr, len, 8, 52);
+	ssd1306_refresh();
+
+	for(;;);  // endless loop here
+}
 
 
 int main(int argc, char* argv[]) {
@@ -614,6 +651,8 @@ int main(int argc, char* argv[]) {
 				//msgIn.dispatch("/getkeys", getKeys, 0);
 
 				msgIn.dispatch("/getknobs", getKnobs, 0);
+
+				msgIn.dispatch("/shutdown", shutdown, 0);
 
 				msgIn.empty(); // free space occupied by message
 

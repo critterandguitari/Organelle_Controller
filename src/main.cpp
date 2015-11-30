@@ -43,9 +43,9 @@ extern "C" {
 __IO uint16_t RegularConvData_Tab[9];
 
 // keys and knobs
-uint8_t keyValuesRaw[25];
-uint8_t keyValues[4][25];
-uint8_t keyValuesLast[25];
+uint8_t keyValuesRaw[26];
+uint8_t keyValues[4][26];
+uint8_t keyValuesLast[26];
 uint32_t knobValues[5];
 
 // key mux
@@ -270,35 +270,8 @@ static void DMA_Config(void)
 	/* DMA1 Channel1 enable */
 	DMA_Cmd(DMA1_Channel1, ENABLE);
 
-  //Enable transfer complete interrupt for DMA1 channel 1
-  /*	DMA_ClearITPendingBit(DMA1_IT_TC1);
-  	DMA_ITConfig(DMA1_Channel1, DMA_IT_TC, ENABLE);
-
-  	NVIC_InitTypeDef NVIC_InitStructure;
-  	//Enable DMA1 channel IRQ Channel
-  	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel1_IRQn;
-  //	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  //	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-  	NVIC_InitStructure.NVIC_IRQChannelPriority = 0;
-  	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  	NVIC_Init(&NVIC_InitStructure);*/
-
 }
 
-/*
-void DMA1_Channel1_IRQHandler(void){
-	if(DMA_GetITStatus(DMA1_IT_TC1)){
-	     keyValues[0] = ((int32_t)RegularConvData_Tab[0]);  // only for the first one
-	     keyValues[1] = ((int32_t)RegularConvData_Tab[1]);
-	     keyValues[2] = ((int32_t)RegularConvData_Tab[2]);
-	     keyValues[3] = ((int32_t)RegularConvData_Tab[3]);
-
-	       DMA_ClearITPendingBit(DMA1_IT_TC1);
-	     //Clear DMA1 Channel1 Half Transfer, Transfer Complete and Global interrupt pending bits
-	     DMA_ClearITPendingBit(DMA1_IT_GL1);
-	}
-}
-*/
 
 //// end ADC DMA
 
@@ -332,10 +305,11 @@ uint32_t scanKeys(){
 		// do nothing, wait for next conversion sequence since the muxes were just changed
 	}
 	if (seqCount == 2){
-		keyValuesRaw[0] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_3)) ? 100 : 0; // the aux key, cause we scan in reverse for some reason
-		keyValuesRaw[1 + muxSelCount] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_2)) ? 100 : 0;//RegularConvData_Tab[3];
-		keyValuesRaw[9 + muxSelCount] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_1)) ? 100 : 0;//RegularConvData_Tab[4];
-		keyValuesRaw[17 + muxSelCount] =(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_0)) ? 100 : 0;//RegularConvData_Tab[5];
+		keyValuesRaw[0] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_3)) ? 0 : 100;   // the aux key
+		keyValuesRaw[1 + muxSelCount] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_2)) ? 0 : 100;//RegularConvData_Tab[3];
+		keyValuesRaw[9 + muxSelCount] = (GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_1)) ? 0 : 100;//RegularConvData_Tab[4];
+		keyValuesRaw[17 + muxSelCount] =(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_0)) ? 0 : 100;//RegularConvData_Tab[5];
+		keyValuesRaw[25] = (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_1)) ? 0 : 100;   // the aux key
 	}
 	seqCount++;
 	seqCount %= 3;
@@ -377,6 +351,7 @@ void remapKeys(){
 	static uint32_t cycleCount = 0;
 
 	keyValues[cycleCount][0] = keyValuesRaw[0];
+	keyValues[cycleCount][25] = keyValuesRaw[25];
 
 	keyValues[cycleCount][1] = keyValuesRaw[23];
 	keyValues[cycleCount][2] = keyValuesRaw[21];
@@ -412,7 +387,7 @@ void remapKeys(){
 void checkKeyEvent(void){
 	uint32_t i, j;
 
-	for (i=0; i<25; i++){
+	for (i=0; i<26; i++){
 		if ( 	(keyValues[0][i]) &&
 				(keyValues[1][i]) &&
 				(keyValues[2][i]) &&
@@ -505,7 +480,7 @@ void checkEncoder(void){
     }
 }
 
-uint32_t owen = 0;
+
 
 int main(int argc, char* argv[]) {
 
@@ -549,9 +524,12 @@ int main(int argc, char* argv[]) {
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
-	// timer_start();
-
-	// blink_led_init();
+	// foot switch
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	OSCMessage msgIn;
 
@@ -561,21 +539,32 @@ int main(int argc, char* argv[]) {
 
 	blink_led_init();
 
-	blink_led_on();
 	blink_led_off();
+
+	AUX_LED_RED_OFF;
+	AUX_LED_GREEN_OFF;
+	AUX_LED_BLUE_OFF;
 
 	timer_start();
 	// Infinite loop
 
 	// oled init
 	ssd1306_init(0);
-	put_char_small('I', 0, 0);
-	put_char_small('O', 48, 0);
+
+	println_16("ORGANELLE", 9, 6, 4);
+
+	//println_8("for more patches visit", 22, 0, 22);
+	println_8("www.organelle.io", 19, 4, 32);
+//	println_8("for patches", 11, 8, 42);
+
+	char progressStr[20];
+	int len = 0;
+	int progress = 0;
+	len = sprintf(progressStr, "starting: %d %%", progress);
+	println_8(progressStr, len, 8, 52);
 	ssd1306_refresh();
 
-	AUX_LED_RED_OFF;
-	AUX_LED_GREEN_OFF;
-	AUX_LED_BLUE_OFF;
+
 	stopwatchStart();
 
 	while (1) {
@@ -597,8 +586,14 @@ int main(int argc, char* argv[]) {
 			else {   // just empty it if there was an error
 				msgIn.empty(); // free space occupied by message
 			}
-
 		}
+		if (stopwatchReport() > 2000){
+			stopwatchStart();
+			len = sprintf(progressStr, "starting: %d %%", progress++);
+			println_8(progressStr, len, 8, 52);
+			ssd1306_refresh();
+		}
+
 	} // waiting for /ready command
 
 
@@ -637,22 +632,6 @@ int main(int argc, char* argv[]) {
 
 		// check encoder
 		checkEncoder();
-
-
-
-		/*if (stopwatchReport() > 1000 ){
-			stopwatchStart();
-			OSCMessage msgKey("/key");
-
-			msgKey.add((int32_t)4);
-			msgKey.add((int32_t)100);
-
-		    ssd1306_cs(0);
-			msgKey.send(oscBuf);
-			slip.sendMessage(oscBuf.buffer, oscBuf.length, serialUart2);
-		    ssd1306_cs(1);
-			msgKey.empty(); // free space occupied by message
-		}*/
 
 	} // Infinite loop, never return.
 }

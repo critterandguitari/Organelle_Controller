@@ -99,14 +99,6 @@ int uart2_read(void)
 void USART2_IRQHandler(void)
 {
 
- /* if (USART_GetITStatus(USART1, USART_IT_TXE) != RESET) // Transmit the string in a loop
-  {
-    USART_SendData(USART1, StringLoop[tx_index++]);
-
-    if (tx_index >= (sizeof(StringLoop) - 1))
-      tx_index = 0;
-  }*/
-
   // check if the USART1 receive interrupt flag was set
 
     if( USART_GetITStatus(USART2, USART_IT_RXNE) != RESET){
@@ -120,8 +112,4 @@ void USART2_IRQHandler(void)
         //blink_led_off();
     }
 
- /* if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) // Received characters modify string
-  {
-
-  }*/
 }

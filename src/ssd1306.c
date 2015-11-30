@@ -239,6 +239,56 @@ void ssd1306_refresh_line(uint8_t page)
 }
 
 
+void println_16(char * line, int len, int x, int y){
+    int i, deltax;
+    deltax = x;
+    for (i = 0; i < len; i++) {
+        deltax += put_char_arial16(line[i], deltax, y, 1);
+        deltax += 2;
+    }
+}
+
+void println_8(char * line, int len, int x, int y){
+    int i, deltax;
+    deltax = x;
+    for (i = 0; i < len; i++) {
+        deltax += put_char_small(line[i], deltax, y);
+        deltax += 1;
+    }
+}
+
+
+unsigned int put_char_arial16(unsigned char character, unsigned int y, unsigned int x, unsigned int color){
+  int i;
+  int j;
+  int k;
+  int charWidth;
+  int charOffset;
+
+  if (character == 32)
+    return 4;
+
+  character -= 33;
+
+  charWidth = arial16Width[character + 1];
+  charOffset = arial16Offset[character] * 2;
+
+
+  for (i = 0; i < 2; i++){
+    for (j = 0; j < 8; j++){
+      for (k = 0; k < charWidth; k++){
+        if ((arial16[charOffset + k + (i * charWidth)] >> j) & 0x01)
+          put_pixel(color, (y + k), (x + (i * 8) + j));
+        else
+          put_pixel(0, (y + k), (x + (i * 8) + j));
+      }
+    }
+  }
+  return charWidth + 1;
+}
+
+
+
 /*!
 
     #include "drivers/lcd/bitmap/ssd1306/ssd1306.h"

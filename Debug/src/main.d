@@ -29,7 +29,7 @@ src/main.o: ../src/main.cpp ../system/include/diag/Trace.h ../src/uart.h \
  ../system/include/cmsis/cmsis_device.h \
  ../system/include/cmsis/stm32f0xx.h ../src/BlinkLed.h ../src/ssd1306.h \
  ../src/OSC/OSCMessage.h ../src/OSC/OSCData.h ../src/OSC/OSCTiming.h \
- ../src/OSC/SimpleWriter.h ../src/SLIPEncodedSerial.h ../src/Serial.h \
+ ../src/OSC/SimpleWriter.h ../src/SLIPEncodedSerial.h \
  ../src/OSC/SimpleWriter.h
 
 ../system/include/diag/Trace.h:
@@ -113,7 +113,5 @@ src/main.o: ../src/main.cpp ../system/include/diag/Trace.h ../src/uart.h \
 ../src/OSC/SimpleWriter.h:
 
 ../src/SLIPEncodedSerial.h:
-
-../src/Serial.h:
 
 ../src/OSC/SimpleWriter.h:

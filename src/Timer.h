@@ -12,14 +12,11 @@
 
 #define TIMER_FREQUENCY_HZ (10000u)  // one tenth of millisecond
 
-
 extern volatile uint32_t timer_delayCount;
 
-void
-timer_start (void);
+void timer_start(void);
 
-void
-timer_sleep (uint32_t ticks);
+void timer_sleep(uint32_t ticks);
 
 void stopwatchStart(void);
 

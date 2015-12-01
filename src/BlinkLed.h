@@ -17,7 +17,6 @@
 #define AUX_LED_RED_OFF GPIO_SetBits(GPIOB, GPIO_Pin_9)
 #define AUX_LED_GREEN_OFF GPIO_SetBits(GPIOB, GPIO_Pin_11)
 
-
 // Adjust these definitions for your own board.
 
 // STM32F0DISCOVERY definitions (GREEN led, C9, active high)
@@ -49,27 +48,25 @@ blink_led_off(void);
 
 inline void
 __attribute__((always_inline))
-blink_led_on(void)
-{
+blink_led_on(void) {
 #if (BLINK_ACTIVE_LOW)
-  GPIO_ResetBits(BLINK_GPIOx(BLINK_PORT_NUMBER),
-      BLINK_PIN_MASK(BLINK_PIN_NUMBER));
+	GPIO_ResetBits(BLINK_GPIOx(BLINK_PORT_NUMBER),
+			BLINK_PIN_MASK(BLINK_PIN_NUMBER));
 #else
-  GPIO_SetBits(BLINK_GPIOx(BLINK_PORT_NUMBER),
-      BLINK_PIN_MASK(BLINK_PIN_NUMBER));
+	GPIO_SetBits(BLINK_GPIOx(BLINK_PORT_NUMBER),
+			BLINK_PIN_MASK(BLINK_PIN_NUMBER));
 #endif
 }
 
 inline void
 __attribute__((always_inline))
-blink_led_off(void)
-{
+blink_led_off(void) {
 #if (BLINK_ACTIVE_LOW)
-  GPIO_SetBits(BLINK_GPIOx(BLINK_PORT_NUMBER),
-      BLINK_PIN_MASK(BLINK_PIN_NUMBER));
+	GPIO_SetBits(BLINK_GPIOx(BLINK_PORT_NUMBER),
+			BLINK_PIN_MASK(BLINK_PIN_NUMBER));
 #else
-  GPIO_ResetBits(BLINK_GPIOx(BLINK_PORT_NUMBER),
-      BLINK_PIN_MASK(BLINK_PIN_NUMBER));
+	GPIO_ResetBits(BLINK_GPIOx(BLINK_PORT_NUMBER),
+			BLINK_PIN_MASK(BLINK_PIN_NUMBER));
 #endif
 }
 

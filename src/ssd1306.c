@@ -260,7 +260,14 @@ void println_8(char * line, int len, int x, int y) {
 		deltax += 1;
 	}
 }
-
+void println_8_spacy(char * line, int len, int x, int y) {
+	int i, deltax;
+	deltax = x;
+	for (i = 0; i < len; i++) {
+		deltax += put_char_small(line[i], deltax, y);
+		deltax += 2;
+	}
+}
 unsigned int put_char_arial16(unsigned char character, unsigned int y,
 		unsigned int x, unsigned int color) {
 	int i;

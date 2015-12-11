@@ -18,6 +18,10 @@ void uart2_init(void) {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
+	GPIO_StructInit(&GPIO_InitStructure);
+	USART_StructInit(&USART_InitStructure);
+
+
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);

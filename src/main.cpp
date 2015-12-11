@@ -28,7 +28,7 @@ __IO uint16_t RegularConvData_Tab[9];
 uint8_t keyValuesRaw[26];
 uint8_t keyValues[4][26];
 uint8_t keyValuesLast[26];
-uint32_t knobValues[5];
+uint32_t knobValues[6];
 
 // key mux
 #define MUX_SEL_A_1 GPIO_SetBits(GPIOC, GPIO_Pin_6)
@@ -81,6 +81,9 @@ void checkForKeyEvent();
 void updateKnobs() ;
 void checkEncoder(void) ;
 
+//foot
+void checkFootSwitch (void) ;
+
 int main(int argc, char* argv[]) {
 
 	OSCMessage msgIn;
@@ -103,10 +106,10 @@ int main(int argc, char* argv[]) {
 	// oled init
 	ssd1306_init(0);
 
-	println_16("ORGANELLE", 9, 6, 4);
+	println_8_spacy("   ORGANELLE", 13, 6, 4);
 
 	//println_8("for more patches visit", 22, 0, 22);
-	println_8("www.organelle.io", 19, 4, 32);
+	println_8("www.organelle.io", 19, 8, 28);
 //	println_8("for patches", 11, 8, 42);
 
 	char progressStr[20];
@@ -147,6 +150,8 @@ int main(int argc, char* argv[]) {
 
 	} // waiting for /ready command
 
+	stopwatchStart();   // used to check encoder only 1 per 5 ms
+
 	while (1) {
 		if (slip.recvMessage()) {
 			// fill the message and dispatch it
@@ -168,11 +173,17 @@ int main(int argc, char* argv[]) {
 		// every time mux gets back to 0 key scan is complete
 		if (scanKeys() == 0) {
 			checkForKeyEvent(); // and send em out if we got em
+			// also check about the foot switch
+			checkFootSwitch();
 		}
 		updateKnobs();
 
 		// check encoder
-		checkEncoder();
+		// only check every 5 ms cause the button needs a lot of debounce time
+		if (stopwatchReport() > 50){
+			stopwatchStart();
+			checkEncoder();
+		}
 
 	} // Infinite loop, never return.
 }
@@ -186,6 +197,7 @@ void hardwareInit(void){
 
 	// MUX SEL Lines
 	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_StructInit(&GPIO_InitStructure);
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOC, ENABLE);
 
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8;
@@ -219,11 +231,11 @@ void hardwareInit(void){
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
 	// foot switch
-	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+	/*RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_Init(GPIOA, &GPIO_InitStructure);*/
 
 }
 
@@ -231,6 +243,7 @@ void hardwareInit(void){
 static void ADC_Config(void) {
 	ADC_InitTypeDef ADC_InitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_StructInit(&GPIO_InitStructure);
 	/* ADC1 DeInit */
 	ADC_DeInit(ADC1);
 
@@ -255,7 +268,7 @@ static void ADC_Config(void) {
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 	/* Configure as analog input */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_1;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -277,6 +290,7 @@ static void ADC_Config(void) {
 	ADC_ChannelConfig(ADC1, ADC_Channel_4, ADC_SampleTime_55_5Cycles);
 	ADC_ChannelConfig(ADC1, ADC_Channel_8, ADC_SampleTime_55_5Cycles);
 	ADC_ChannelConfig(ADC1, ADC_Channel_9, ADC_SampleTime_55_5Cycles);
+	ADC_ChannelConfig(ADC1, ADC_Channel_1, ADC_SampleTime_55_5Cycles);
 
 	/* ADC Calibration */
 	ADC_GetCalibrationFactor(ADC1);
@@ -310,10 +324,11 @@ static void DMA_Config(void) {
 
 	/* DMA1 Channel1 Config */
 	DMA_DeInit(DMA1_Channel1);
+	DMA_StructInit(&DMA_InitStructure);
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) ADC1_DR_Address;
 	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) RegularConvData_Tab;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-	DMA_InitStructure.DMA_BufferSize = 5;
+	DMA_InitStructure.DMA_BufferSize = 6;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
@@ -410,10 +425,8 @@ void getKnobs(OSCMessage &msg) {
 
 	OSCMessage msgKnobs("/knobs");
 
-	stopwatchStart();
-
 	uint32_t i;
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 6; i++) {
 		msgKnobs.add((int32_t) knobValues[i]);
 	}
 
@@ -442,10 +455,10 @@ void shutdown(OSCMessage &msg) {
 
 	stopwatchStart();
 	while (progress < 99) {
-		if (stopwatchReport() > 200) {
+		if (stopwatchReport() > 500) {
 			stopwatchStart();
-			len = sprintf(progressStr, "shutting down: %d %%", progress++);
-			println_8(progressStr, len, 8, 52);
+			len = sprintf(progressStr, "Shutting down: %d %%", progress++);
+			println_8(progressStr, len, 1, 21);
 			ssd1306_refresh();
 		}
 	}
@@ -453,8 +466,10 @@ void shutdown(OSCMessage &msg) {
 	for (i = 0; i < 1024; i++) {
 		pix_buf[i] = 0;
 	}
-	len = sprintf(progressStr, "shutdown complete.");
-	println_8(progressStr, len, 8, 52);
+	len = sprintf(progressStr, "Shutdown complete.");
+	println_8(progressStr, len, 1, 21);
+	len = sprintf(progressStr, "Safe to remove power.");
+	println_8(progressStr, len, 1, 43);
 	ssd1306_refresh();
 
 	for (;;)
@@ -515,7 +530,7 @@ uint32_t scanKeys() {
 				(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_1)) ? 0 : 100; //RegularConvData_Tab[4];
 		keyValuesRaw[17 + muxSelCount] =
 				(GPIO_ReadInputDataBit(GPIOC, GPIO_Pin_0)) ? 0 : 100; //RegularConvData_Tab[5];
-		keyValuesRaw[25] = (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_1)) ? 0 : 100; // the aux key
+		keyValuesRaw[25] = 0;//(GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_1)) ? 0 : 100; // the foot switch
 	}
 	seqCount++;
 	seqCount %= 3;
@@ -613,6 +628,39 @@ void updateKnobs() {
 		knobValues[1] = RegularConvData_Tab[2];
 		knobValues[3] = RegularConvData_Tab[3];
 		knobValues[2] = RegularConvData_Tab[4];
+		knobValues[5] = RegularConvData_Tab[5];
+	}
+}
+
+// check for foot switch change
+void checkFootSwitch (void) {
+	static uint8_t foot_last = 0;
+	static uint8_t foot_debounce[2] = {0, 0};
+	static uint8_t foot_debounce_count = 0;
+
+	if (knobValues[5] < 100) foot_debounce[foot_debounce_count] = 0;
+	if (knobValues[5] > 900) foot_debounce[foot_debounce_count] = 1;
+
+	foot_debounce_count++;
+	foot_debounce_count &= 1;
+	//only proceed if debounced (same for 2 times)
+	if (foot_debounce[0] == foot_debounce[1]){
+		if ((knobValues[5] < 100) && foot_last){
+			foot_last = 0;
+			// send press
+			OSCMessage msgEncoder("/fs");
+			msgEncoder.add(1);
+			msgEncoder.send(oscBuf);
+			slip.sendMessage(oscBuf.buffer, oscBuf.length);
+		}
+		if ((knobValues[5] > 900) && !foot_last){
+			foot_last = 1;
+			// send press
+			OSCMessage msgEncoder("/fs");
+			msgEncoder.add(0);
+			msgEncoder.send(oscBuf);
+			slip.sendMessage(oscBuf.buffer, oscBuf.length);
+		}
 	}
 }
 
@@ -621,10 +669,55 @@ void checkEncoder(void) {
 	static uint8_t encoder_last = 0;
 	uint8_t encoder = 0;
 
-	static uint8_t encoder_button_last = 1;
-	uint8_t encoder_button = 0;
 
-	encoder = 0; //(((PINC >> 7) & 1) << 1) | ((PINC>>6) & 1);
+	// because the encoder has a crappy switch, we need  a
+	// different debouce time for press and release
+	// assume checkEncoder gets called every 5ms,
+	// we will wait 10 counts for press and 50 counts for release
+	#define PRESS 0
+	#define RELEASE 1
+	uint8_t button;
+	static uint8_t button_last = RELEASE;
+	static uint8_t press_count = 0;
+	static uint8_t release_count = 0;
+
+	button = (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_13));
+
+	if (button == PRESS) {
+		press_count++;
+		release_count = 0;
+	}
+	if ((press_count > 10) && (button_last == RELEASE)){	// press
+			button_last = PRESS;
+			release_count = 0;
+
+			// send press
+			OSCMessage msgEncoder("/encbut");
+			msgEncoder.add(1);
+			msgEncoder.send(oscBuf);
+			slip.sendMessage(oscBuf.buffer, oscBuf.length);
+	}
+
+	if (button == RELEASE) {
+		release_count++;
+		press_count = 0;
+	}
+	if ((release_count > 50) && (button_last == PRESS)){	// release
+			button_last = RELEASE;
+			press_count = 0;
+
+			// send release
+			OSCMessage msgEncoder("/encbut");
+			msgEncoder.add(0);
+			msgEncoder.send(oscBuf);
+			slip.sendMessage(oscBuf.buffer, oscBuf.length);
+	}
+
+
+
+
+	// turning
+	encoder = 0;
 	if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_14))
 		encoder |= 0x1;
 	if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_15))
@@ -653,18 +746,6 @@ void checkEncoder(void) {
 		encoder_last = encoder;
 
 		//msgEncoder.setAddress("/enc");
-	}
-
-	encoder_button = (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_13));
-	if (encoder_button != encoder_button_last) {
-		OSCMessage msgEncoder("/encbut");
-		if (encoder_button == 0)
-			msgEncoder.add(0);
-		if (encoder_button == 1)
-			msgEncoder.add(1);
-		msgEncoder.send(oscBuf);
-		slip.sendMessage(oscBuf.buffer, oscBuf.length);
-		encoder_button_last = encoder_button;
 	}
 }
 

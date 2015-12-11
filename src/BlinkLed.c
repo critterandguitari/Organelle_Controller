@@ -12,6 +12,7 @@ void blink_led_init() {
 	RCC_AHBPeriphClockCmd(BLINK_RCC_MASKx(BLINK_PORT_NUMBER), ENABLE);
 
 	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_StructInit(&GPIO_InitStructure);
 
 	// Configure pin in output push/pull mode
 	GPIO_InitStructure.GPIO_Pin = BLINK_PIN_MASK(BLINK_PIN_NUMBER);

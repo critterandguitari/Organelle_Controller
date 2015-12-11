@@ -61,6 +61,7 @@ unsigned int put_char_arial16(unsigned char character, unsigned int y, unsigned 
 
 void println_16(char * line, int len, int x, int y);
 void println_8(char * line, int len, int x, int y);
+void println_8_spacy(char * line, int len, int x, int y);
 				
 				static const unsigned char font[] = {
 				        0x00, 0x00, 0x00, 0x00, 0x00,   

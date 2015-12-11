@@ -15,7 +15,10 @@ void spi_init(void) {
 
 	GPIO_InitTypeDef GPIO_InitStructure;
 	SPI_InitTypeDef SPI_InitStructure;
-	NVIC_InitTypeDef NVIC_InitStructure;
+
+	GPIO_StructInit(&GPIO_InitStructure);
+	SPI_StructInit(&SPI_InitStructure);
+
 
 	/* GPIOA Periph clock enable */
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);

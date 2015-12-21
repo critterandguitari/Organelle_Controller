@@ -106,10 +106,10 @@ int main(int argc, char* argv[]) {
 	// oled init
 	ssd1306_init(0);
 
-	println_8_spacy("   ORGANELLE", 13, 6, 4);
+	println_8_spacy("   ORGANELLE", 12, 6, 4);
 
 	//println_8("for more patches visit", 22, 0, 22);
-	println_8("www.organelle.io", 19, 8, 28);
+	println_8("www.organelle.io", 16, 8, 28);
 //	println_8("for patches", 11, 8, 42);
 
 	char progressStr[20];

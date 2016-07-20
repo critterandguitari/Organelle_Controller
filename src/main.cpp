@@ -88,19 +88,30 @@ int main(int argc, char* argv[]) {
 
 	OSCMessage msgIn;
 
-	hardwareInit();
-
-	uart2_init();
-
 	blink_led_init();
-
 	blink_led_off();
+
+
+	timer_start();
+
+	// flash leds while power stabilizes
+	// before initializing ADC
+	stopwatchStart();
+	while (stopwatchReport() < 500){ AUX_LED_RED_ON; }
+	stopwatchStart();
+	while (stopwatchReport() < 500){ AUX_LED_GREEN_ON; }
+	stopwatchStart();
+	while (stopwatchReport() < 500){ AUX_LED_BLUE_ON; }
+	stopwatchStart();
 
 	AUX_LED_RED_OFF;
 	AUX_LED_GREEN_OFF;
 	AUX_LED_BLUE_OFF;
 
-	timer_start();
+	uart2_init();
+
+	hardwareInit();
+
 	// Infinite loop
 
 	// oled init

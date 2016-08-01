@@ -2822,10 +2822,10 @@ END GROUP
  .text.SysTick_Handler
                 0x0000000008002cb4        0x8 ./src/Timer.o
                 0x0000000008002cb4                SysTick_Handler
- .text._ZL10ADC_Configv
-                0x0000000008002cbc      0x118 ./src/main.o
  .text._ZL10DMA_Configv
-                0x0000000008002dd4       0x68 ./src/main.o
+                0x0000000008002cbc       0x68 ./src/main.o
+ .text._ZL10ADC_Configv
+                0x0000000008002d24      0x118 ./src/main.o
  .text._Z10ledControlR10OSCMessage
                 0x0000000008002e3c      0x154 ./src/main.o
                 0x0000000008002e3c                ledControl(OSCMessage&)
@@ -3438,7 +3438,7 @@ END GROUP
 .debug_pubnames
  *(.debug_pubnames)
 
-.debug_info     0x0000000000000000    0x12cb3
+.debug_info     0x0000000000000000    0x12cb5
  *(.debug_info .gnu.linkonce.wi.*)
  .debug_info    0x0000000000000000      0xfd9 ./system/src/stm32f0-stdperiph/stm32f0xx_adc.o
  .debug_info    0x0000000000000fd9      0x6da ./system/src/stm32f0-stdperiph/stm32f0xx_dma.o
@@ -3463,12 +3463,12 @@ END GROUP
  .debug_info    0x000000000000c732      0x412 ./src/BlinkLed.o
  .debug_info    0x000000000000cb44      0x54f ./src/SLIPEncodedSerial.o
  .debug_info    0x000000000000d093      0x499 ./src/Timer.o
- .debug_info    0x000000000000d52c     0x37db ./src/main.o
- .debug_info    0x0000000000010d07      0x70d ./src/spi.o
- .debug_info    0x0000000000011414      0xf82 ./src/ssd1306.o
- .debug_info    0x0000000000012396      0x91d ./src/uart.o
+ .debug_info    0x000000000000d52c     0x37dd ./src/main.o
+ .debug_info    0x0000000000010d09      0x70d ./src/spi.o
+ .debug_info    0x0000000000011416      0xf82 ./src/ssd1306.o
+ .debug_info    0x0000000000012398      0x91d ./src/uart.o
 
-.debug_abbrev   0x0000000000000000     0x30fb
+.debug_abbrev   0x0000000000000000     0x30e5
  *(.debug_abbrev)
  .debug_abbrev  0x0000000000000000      0x1b9 ./system/src/stm32f0-stdperiph/stm32f0xx_adc.o
  .debug_abbrev  0x00000000000001b9      0x196 ./system/src/stm32f0-stdperiph/stm32f0xx_dma.o
@@ -3493,10 +3493,10 @@ END GROUP
  .debug_abbrev  0x0000000000001fb2      0x16d ./src/BlinkLed.o
  .debug_abbrev  0x000000000000211f      0x23e ./src/SLIPEncodedSerial.o
  .debug_abbrev  0x000000000000235d      0x1cf ./src/Timer.o
- .debug_abbrev  0x000000000000252c      0x5ce ./src/main.o
- .debug_abbrev  0x0000000000002afa      0x174 ./src/spi.o
- .debug_abbrev  0x0000000000002c6e      0x292 ./src/ssd1306.o
- .debug_abbrev  0x0000000000002f00      0x1fb ./src/uart.o
+ .debug_abbrev  0x000000000000252c      0x5b8 ./src/main.o
+ .debug_abbrev  0x0000000000002ae4      0x174 ./src/spi.o
+ .debug_abbrev  0x0000000000002c58      0x292 ./src/ssd1306.o
+ .debug_abbrev  0x0000000000002eea      0x1fb ./src/uart.o
 
 .debug_line     0x0000000000000000     0x8be7
  *(.debug_line)

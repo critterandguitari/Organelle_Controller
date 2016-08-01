@@ -97,11 +97,11 @@ int main(int argc, char* argv[]) {
 	// flash leds while power stabilizes
 	// before initializing ADC
 	stopwatchStart();
-	while (stopwatchReport() < 500){ AUX_LED_RED_ON; }
+	while (stopwatchReport() < 500){ AUX_LED_GREEN_ON; }
 	stopwatchStart();
 	while (stopwatchReport() < 500){ AUX_LED_GREEN_ON; }
 	stopwatchStart();
-	while (stopwatchReport() < 500){ AUX_LED_BLUE_ON; }
+	while (stopwatchReport() < 500){ AUX_LED_GREEN_ON; }
 	stopwatchStart();
 
 	AUX_LED_RED_OFF;
@@ -200,11 +200,13 @@ int main(int argc, char* argv[]) {
 }
 
 void hardwareInit(void){
-	/* ADC1 configuration */
-	ADC_Config();
+
 
 	/* DMA configuration */
 	DMA_Config();
+
+	/* ADC1 configuration */
+	ADC_Config();
 
 	// MUX SEL Lines
 	GPIO_InitTypeDef GPIO_InitStructure;

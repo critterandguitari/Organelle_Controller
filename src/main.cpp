@@ -97,11 +97,11 @@ int main(int argc, char* argv[]) {
 	// flash leds while power stabilizes
 	// before initializing ADC
 	stopwatchStart();
-	while (stopwatchReport() < 500){ AUX_LED_GREEN_ON; }
+	while (stopwatchReport() < 500){ AUX_LED_RED_ON; }
 	stopwatchStart();
 	while (stopwatchReport() < 500){ AUX_LED_GREEN_ON; }
 	stopwatchStart();
-	while (stopwatchReport() < 500){ AUX_LED_GREEN_ON; }
+	while (stopwatchReport() < 500){ AUX_LED_BLUE_ON; }
 	stopwatchStart();
 
 	AUX_LED_RED_OFF;
@@ -190,8 +190,8 @@ int main(int argc, char* argv[]) {
 		updateKnobs();
 
 		// check encoder
-		// only check every 5 ms cause the button needs a lot of debounce time
-		if (stopwatchReport() > 50){
+		// only check every 2 ms cause the button needs a lot of debounce time
+		if (stopwatchReport() > 5){
 			stopwatchStart();
 			checkEncoder();
 		}

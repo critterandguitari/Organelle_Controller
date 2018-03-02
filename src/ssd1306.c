@@ -161,7 +161,7 @@ void ssd1306_init(uint8_t vccstate) {
 	CMD(SSD1306_SETDISPLAYOFFSET);              // 0xD3
 	CMD(0x0);                                   // no offset
 	CMD(SSD1306_SETDISPLAYCLOCKDIV);            // 0xD5
-	CMD(0x80);                                  // the suggested ratio 0x80
+	CMD(0xF0);                                  // the suggested ratio 0x80
 	CMD(SSD1306_SETPRECHARGE);                  // 0xd9
 	if (vccstate == SSD1306_EXTERNALVCC) {
 		CMD(0x22);
